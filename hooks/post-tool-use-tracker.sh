@@ -1,8 +1,10 @@
 #!/bin/bash
-set -e
-
 # Post-tool-use hook that tracks edited files and their repos
 # This runs after Edit, MultiEdit, or Write tools complete successfully
+#
+# Fail-open: 어떤 에러가 발생해도 exit 0으로 종료한다.
+# 훅 실패가 Claude 세션을 막으면 안 된다.
+trap 'exit 0' ERR
 
 # jq 필수 — 없으면 조용히 종료
 command -v jq &>/dev/null || exit 0

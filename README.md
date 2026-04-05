@@ -43,6 +43,8 @@ cd ~/.claude/hooks && npm install
 | Node.js | skill-activation-prompt 훅 | `brew install node` |
 | jq | post-tool-use-tracker 훅 | `brew install jq` |
 
+> **hooks 의존성 관리**: `hooks/package-lock.json`은 git에 추적하여 의존성 재현성을 보장한다. `hooks/node_modules/`는 `.gitignore`로 제외된다.
+
 ## Knowledge 파일 정책
 
 도메인 스킬(`fe`, `be`, `qa` 등)의 SKILL.md는 git에 추적되지만, SKILL.md가 참조하는 **knowledge 파일은 git에 포함되지 않는다** (`.gitignore`로 제외).
@@ -142,6 +144,7 @@ bash bin/check-skills.sh --bootstrap
 |---|---|---|
 | `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 관련 스킬 추천 메시지 출력 |
 | `post-tool-use-tracker.sh` | PostToolUse | 편집 파일 추적 + TSC 커맨드 캐시 |
+| *(Notification)* | Notification | macOS 알림 (osascript, settings.json inline) |
 
 `skill-activation-prompt.sh`는 `skill-activation-prompt.ts`를 npx tsx로 실행하는 래퍼다.
 

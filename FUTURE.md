@@ -200,6 +200,11 @@ Agent Team도 잘못 쓰면 같은 문제가 생긴다.
 2. 루프가 생긴 사례를 `issues.md`에 계속 기록
 3. 거의 안 쓰는 규칙/문구/패턴은 제거
 4. 자주 쓰는 스킬만 남기고 나머지는 약화
+5. `ops-lead` 에이전트 실사용 빈도 관찰 → 거의 안 쓰면 스킬로 흡수 검토
+6. 플러그인과 내부 컴포넌트 역할 중복 관찰 (superpowers vs skill-activation-prompt, feature-dev vs orchestrator/planner, skill-creator vs skill-developer)
+7. `skill-activation-prompt` 체감 지연 측정 → 느리면 사전 컴파일 도입
+8. `skill-rules.json` false positive/negative 사례 수집
+9. `orchestrator`/`deep-worker` 중복 규칙 충돌 사례 수집 → 빈번하면 `shared-rules` 스킬 추출
 
 ## Stage 2. Small Team Experiments
 

@@ -228,6 +228,7 @@ ACTION: Use Skill tool BEFORE responding
 |--------|--------|------|
 | `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 관련 스킬 추천 메시지 출력 |
 | `post-tool-use-tracker.sh` | PostToolUse (Edit/Write) | 편집 파일 추적, TSC 커맨드 캐시 |
+| *(inline, settings.json)* | Notification | macOS 알림 표시 (osascript) |
 
 **post-tool-use-tracker** — 편집 로그를 `.claude/tsc-cache/{session_id}/`에 기록. `auto-error-resolver`가 이 캐시를 읽어 TypeScript 오류를 자동 수정한다.
 
@@ -346,6 +347,24 @@ task(subagent_type="librarian", run_in_background=true, load_skills=[],
 
 - 서브에이전트 위임 전: issues.md 읽기
 - 서브에이전트 완료 후: 발견한 문제·주의사항 append (덮어쓰기 금지)
+
+
+### 11.4.1 작업 디렉토리 구분: .orchestrator/ vs dev/active/
+
+두 디렉토리는 **용도와 생성 주체가 다르다**. 혼용하지 않는다.
+
+| | `.orchestrator/` | `dev/active/` |
+|---|---|---|
+| **생성 주체** | Planner / Orchestrator 에이전트가 자동 생성 | 사용자가 `/dev-docs` 커맨드로 명시적 생성 |
+| **용도** | 에이전트 간 협업 (계획, notepad, evidence) | 세션 간 컨텍스트 보존 (계획, 상태, 체크리스트) |
+| **수명** | 계획 실행 완료 후 정리 가능 | 태스크 완전 종료까지 유지 |
+| **핵심 파일** | `plans/{name}.md`, `notepads/{name}/issues.md` | `{task}-plan.md`, `{task}-context.md`, `{task}-tasks.md` |
+| **주 사용 시점** | `claude --agent planner` → `claude --agent orchestrator` 워크플로우 | 장기 태스크, 컨텍스트 리셋 전 `/dev-docs-update` |
+
+**언제 뭘 쓰는가:**
+- Planner로 계획 수립 → Orchestrator로 실행 → `.orchestrator/`
+- 장기 태스크, 세션을 넘어가는 작업 → `dev/active/`
+- 둘 다 필요할 수 있다 — Planner 계획 + dev-docs 컨텍스트 보존은 공존 가능
 
 ### 11.5 세션 연속성
 

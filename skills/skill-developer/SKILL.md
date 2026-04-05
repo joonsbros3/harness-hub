@@ -29,7 +29,7 @@ Automatically activates when you mention:
 
 ### Hook Architecture (현재 구현)
 
-harness-hub에는 2개의 훅이 구현되어 있다:
+harness-hub에는 3개의 훅이 등록되어 있다 (스크립트 2개 + inline 1개):
 
 **1. UserPromptSubmit — skill-activation-prompt** (스킬 제안)
 - **래퍼**: `~/.claude/hooks/skill-activation-prompt.sh`
@@ -43,6 +43,12 @@ harness-hub에는 2개의 훅이 구현되어 있다:
 - **트리거**: Edit/Write/MultiEdit 도구 실행 후
 - **동작**: 편집된 파일과 소속 레포를 `.claude/tsc-cache/{session_id}/`에 기록. `auto-error-resolver` 에이전트가 이 캐시를 읽어 TypeScript 오류를 수정
 - **특성**: Non-blocking, 추적 전용
+
+**3. Notification** (macOS 알림)
+- **설정**: `settings.json`의 hooks.Notification에 inline command로 정의
+- **트리거**: Claude가 사용자에게 알림을 보낼 때
+- **동작**: `osascript`로 macOS 네이티브 알림 표시
+- **특성**: Non-blocking, 별도 스크립트 파일 없음 (settings.json inline)
 
 ### 추가 가능한 훅 (Claude Code 지원, 현재 미구현)
 
@@ -228,7 +234,7 @@ Based on testing:
 
 향후 PreToolUse guardrail 훅을 구현할 경우 다음 패턴을 사용할 수 있다:
 
-- **Session tracking**: 세션당 1회만 차단 (`.claude/hooks/state/skills-used-{session_id}.json`)
+- **Session tracking**: 세션당 1회만 차단 (`.claude/hooks/state/skills-used-{session_id}.json`) — 현재 미구현
 - **File markers**: `// @skip-validation` 주석으로 영구 스킵
 - **Environment variables**: `SKIP_SKILL_GUARDRAILS=true`로 긴급 비활성화
 
@@ -365,7 +371,7 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for complete debugging guide.
 
 **Configuration:**
 - `.claude/skills/skill-rules.json` - Master configuration
-- `.claude/hooks/state/` - Session tracking
+- `.claude/hooks/state/` - Session tracking (미구현, guardrail 도입 시 생성)
 - `.claude/settings.json` - Hook registration
 
 **Hooks:**
