@@ -6,7 +6,6 @@ Complete debugging guide for skill activation problems.
 
 - [Skill Not Triggering](#skill-not-triggering)
   - [UserPromptSubmit Not Suggesting](#userpromptsubmit-not-suggesting)
-  - [PreToolUse Not Blocking](#pretooluse-not-blocking)
 - [False Positives](#false-positives)
 - [Hook Not Executing](#hook-not-executing)
 - [Performance Issues](#performance-issues)
@@ -113,140 +112,12 @@ Expected: Your skill should appear in the output.
 
 ---
 
-### PreToolUse Not Blocking
+### PreToolUse Not Blocking (참고)
 
-**Symptoms:** Edit a file that should trigger a guardrail, but no block occurs.
-
-**Common Causes:**
-
-#### 1. File Path Doesn't Match Patterns
-
-**Check:**
-- File path being edited
-- `fileTriggers.pathPatterns` in skill-rules.json
-- Glob pattern syntax
-
-**Example:**
-```json
-"pathPatterns": [
-  "frontend/src/**/*.tsx"
-]
-```
-- Editing: `frontend/src/components/Dashboard.tsx` → ✅ Matches
-- Editing: `frontend/tests/Dashboard.test.tsx` → ✅ Matches (add exclusion!)
-- Editing: `backend/src/app.ts` → ❌ Doesn't match
-
-**Fix:** Adjust glob patterns or add the missing path
-
-#### 2. Excluded by pathExclusions
-
-**Check:**
-- Are you editing a test file?
-- Look at `fileTriggers.pathExclusions`
-
-**Example:**
-```json
-"pathExclusions": [
-  "**/*.test.ts",
-  "**/*.spec.ts"
-]
-```
-- Editing: `services/user.test.ts` → ❌ Excluded
-- Editing: `services/user.ts` → ✅ Not excluded
-
-**Fix:** If test exclusion too broad, narrow it or remove
-
-#### 3. Content Pattern Not Found
-
-**Check:**
-- Does the file actually contain the pattern?
-- Look at `fileTriggers.contentPatterns`
-- Is the regex correct?
-
-**Example:**
-```json
-"contentPatterns": [
-  "import.*[Pp]risma"
-]
-```
-- File has: `import { PrismaService } from './prisma'` → ✅ Matches
-- File has: `import { Database } from './db'` → ❌ Doesn't match
-
-**Debug:**
-```bash
-# Check if pattern exists in file
-grep -i "prisma" path/to/file.ts
-```
-
-**Fix:** Adjust content patterns or add missing imports
-
-#### 4. Session Already Used Skill
-
-**Check session state:**
-```bash
-ls .claude/hooks/state/
-cat .claude/hooks/state/skills-used-{session-id}.json
-```
-
-**Example:**
-```json
-{
-  "skills_used": ["database-verification"],
-  "files_verified": []
-}
-```
-
-If the skill is in `skills_used`, it won't block again in this session.
-
-**Fix:** Delete the state file to reset:
-```bash
-rm .claude/hooks/state/skills-used-{session-id}.json
-```
-
-#### 5. File Marker Present
-
-**Check file for skip marker:**
-```bash
-grep "@skip-validation" path/to/file.ts
-```
-
-If found, the file is permanently skipped.
-
-**Fix:** Remove the marker if verification is needed again
-
-#### 6. Environment Variable Override
-
-**Check:**
-```bash
-echo $SKIP_DB_VERIFICATION
-echo $SKIP_SKILL_GUARDRAILS
-```
-
-If set, the skill is disabled.
-
-**Fix:** Unset the environment variable:
-```bash
-unset SKIP_DB_VERIFICATION
-```
-
-#### Debug Command
-
-Test the hook manually:
-
-```bash
-cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts 2>&1
-{
-  "session_id": "debug",
-  "tool_name": "Edit",
-  "tool_input": {"file_path": "/root/git/your-project/form/src/services/user.ts"}
-}
-EOF
-echo "Exit code: $?"
-```
-
-Expected:
-- Exit code 2 + stderr message if should block
-- Exit code 0 + no output if should allow
+> ⚠️ 현재 harness-hub에는 PreToolUse 훅이 구현되어 있지 않다.
+> Guardrail 스킬 구현 시 [HOOK_MECHANISMS.md](HOOK_MECHANISMS.md)의 "PreToolUse 참조 패턴"을 참고한다.
+>
+> 자주 발생하는 문제: 파일 경로 패턴 불일치, pathExclusions에 의한 제외, 세션 상태에 의한 스킵, 환경 변수 오버라이드
 
 ---
 
@@ -355,31 +226,15 @@ This makes it advisory instead of blocking.
 
 ### 1. Hook Not Registered
 
-**Check `.claude/settings.json`:**
+**Check `~/.claude/settings.json`:**
 ```bash
-cat .claude/settings.json | jq '.hooks.UserPromptSubmit'
-cat .claude/settings.json | jq '.hooks.PreToolUse'
+cat ~/.claude/settings.json | jq '.hooks.UserPromptSubmit'
+cat ~/.claude/settings.json | jq '.hooks.PostToolUse'
 ```
 
-Expected: Hook entries present
+Expected: 훅 엔트리가 존재해야 함
 
-**Fix:** Add missing hook registration:
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/skill-activation-prompt.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+**Fix:** 누락된 훅 등록 추가 (`settings.json`의 hooks 섹션 확인)
 
 ### 2. Bash Wrapper Not Executable
 
@@ -493,18 +348,16 @@ Content pattern matching reads entire file - slow for large files.
 ### Measure Performance
 
 ```bash
-# UserPromptSubmit
-time echo '{"prompt":"test"}' | npx tsx .claude/hooks/skill-activation-prompt.ts
+# UserPromptSubmit (skill-activation-prompt)
+time echo '{"prompt":"test"}' | npx tsx ~/.claude/hooks/skill-activation-prompt.ts
 
-# PreToolUse
-time cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts
-{"tool_name":"Edit","tool_input":{"file_path":"test.ts"}}
-EOF
+# PostToolUse (post-tool-use-tracker)
+time echo '{"tool_name":"Edit","tool_input":{"file_path":"src/app.ts"},"session_id":"test"}' | bash ~/.claude/hooks/post-tool-use-tracker.sh
 ```
 
 **Target metrics:**
-- UserPromptSubmit: < 100ms
-- PreToolUse: < 200ms
+- UserPromptSubmit: < 100ms (현재 npx tsx cold start로 ~500ms+, 사전 컴파일로 개선 가능)
+- PostToolUse: < 50ms (순수 bash)
 
 ---
 

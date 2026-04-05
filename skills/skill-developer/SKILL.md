@@ -27,59 +27,67 @@ Automatically activates when you mention:
 
 ## System Overview
 
-### Two-Hook Architecture
+### Hook Architecture (현재 구현)
 
-**1. UserPromptSubmit Hook** (Proactive Suggestions)
-- **File**: `.claude/hooks/skill-activation-prompt.ts`
-- **Trigger**: BEFORE Claude sees user's prompt
-- **Purpose**: Suggest relevant skills based on keywords + intent patterns
-- **Method**: Injects formatted reminder as context (stdout → Claude's input)
-- **Use Cases**: Topic-based skills, implicit work detection
+harness-hub에는 2개의 훅이 구현되어 있다:
 
-**2. Stop Hook - Error Handling Reminder** (Gentle Reminders)
-- **File**: `.claude/hooks/error-handling-reminder.ts`
-- **Trigger**: AFTER Claude finishes responding
-- **Purpose**: Gentle reminder to self-assess error handling in code written
-- **Method**: Analyzes edited files for risky patterns, displays reminder if needed
-- **Use Cases**: Error handling awareness without blocking friction
+**1. UserPromptSubmit — skill-activation-prompt** (스킬 제안)
+- **래퍼**: `~/.claude/hooks/skill-activation-prompt.sh`
+- **구현체**: `~/.claude/hooks/skill-activation-prompt.ts` (npx tsx로 실행)
+- **트리거**: 사용자 프롬프트 전송 직전
+- **동작**: `skill-rules.json`의 keywords/intentPatterns으로 프롬프트 분석 → 매칭된 스킬 제안 메시지를 stdout으로 출력 → Claude 컨텍스트에 삽입
+- **특성**: Non-blocking, advisory only (exit code 항상 0)
 
-**Philosophy Change (2025-10-27):** We moved away from blocking PreToolUse for Sentry/error handling. Instead, use gentle post-response reminders that don't block workflow but maintain code quality awareness.
+**2. PostToolUse — post-tool-use-tracker** (파일 편집 추적)
+- **파일**: `~/.claude/hooks/post-tool-use-tracker.sh`
+- **트리거**: Edit/Write/MultiEdit 도구 실행 후
+- **동작**: 편집된 파일과 소속 레포를 `.claude/tsc-cache/{session_id}/`에 기록. `auto-error-resolver` 에이전트가 이 캐시를 읽어 TypeScript 오류를 수정
+- **특성**: Non-blocking, 추적 전용
+
+### 추가 가능한 훅 (Claude Code 지원, 현재 미구현)
+
+Claude Code는 다음 훅 이벤트도 지원한다. 필요 시 `settings.json`의 hooks 섹션에 추가:
+
+- **PreToolUse**: 도구 실행 전 가로채기. exit code 2로 차단 가능 → guardrail 스킬 구현에 사용
+- **Stop**: Claude 응답 완료 후. 결과 검증, 알림에 사용
+- **SubagentStop**: 서브에이전트 완료 후
 
 ### Configuration File
 
-**Location**: `.claude/skills/skill-rules.json`
+**Location**: `~/.claude/skills/skill-rules.json`
 
-Defines:
-- All skills and their trigger conditions
-- Enforcement levels (block, suggest, warn)
-- File path patterns (glob)
-- Content detection patterns (regex)
-- Skip conditions (session tracking, file markers, env vars)
+정의하는 것:
+- 모든 스킬과 트리거 조건 (keywords, intentPatterns)
+- Enforcement 레벨 (suggest, warn, block)
+- 우선순위 (critical, high, medium, low)
+
+프로젝트별 오버라이드: `{project}/.claude/skills/skill-rules.json` (글로벌보다 우선)
 
 ---
 
 ## Skill Types
 
-### 1. Guardrail Skills
+### 1. Guardrail Skills (PreToolUse 훅 필요 — 현재 미구현)
 
-**Purpose:** Enforce critical best practices that prevent errors
+**Purpose:** 크리티컬한 실수를 방지하는 강제 스킬
+
+> ⚠️ Guardrail 스킬은 PreToolUse 훅으로 Edit/Write를 차단해야 동작한다.
+> 현재 harness-hub에는 PreToolUse 훅이 구현되어 있지 않다.
+> 구현 시 `settings.json`의 hooks에 PreToolUse 이벤트를 추가하고,
+> exit code 2로 차단 + stderr 메시지를 Claude에 전달하는 훅 스크립트를 작성한다.
+> 상세 패턴은 [HOOK_MECHANISMS.md](HOOK_MECHANISMS.md)의 "PreToolUse 참조 패턴" 참조.
 
 **Characteristics:**
 - Type: `"guardrail"`
 - Enforcement: `"block"`
 - Priority: `"critical"` or `"high"`
-- Block file edits until skill used
-- Prevent common mistakes (column names, critical errors)
-- Session-aware (don't repeat nag in same session)
-
-**Examples:**
-- `database-verification` - Verify table/column names before Prisma queries
-- `frontend-dev-guidelines` - Enforce React/TypeScript patterns
+- PreToolUse 훅이 Edit/Write를 차단
+- Claude가 스킬을 사용한 후 재시도
 
 **When to Use:**
-- Mistakes that cause runtime errors
-- Data integrity concerns
-- Critical compatibility issues
+- 런타임 에러를 유발하는 실수 방지
+- 데이터 정합성 보호
+- 크리티컬한 호환성 이슈
 
 ### 2. Domain Skills
 
@@ -93,10 +101,10 @@ Defines:
 - Topic or domain-specific
 - Comprehensive documentation
 
-**Examples:**
-- `backend-dev-guidelines` - Node.js/Express/TypeScript patterns
-- `frontend-dev-guidelines` - React/TypeScript best practices
-- `error-tracking` - Sentry integration guidance
+**Examples (harness-hub에 실제 존재):**
+- `fe` - React/Next.js/TypeScript 프론트엔드 가이드
+- `be` - Node.js/Fastify + Python/Django 백엔드 가이드
+- `qa` - 테스트 전략, 자동화, 성능/보안 테스트
 
 **When to Use:**
 - Complex systems requiring deep knowledge
@@ -159,18 +167,13 @@ See [SKILL_RULES_REFERENCE.md](SKILL_RULES_REFERENCE.md) for complete schema.
 
 ### Step 3: Test Triggers
 
-**Test UserPromptSubmit:**
+**Test UserPromptSubmit (skill-activation-prompt):**
 ```bash
 echo '{"session_id":"test","prompt":"your test prompt"}' | \
-  npx tsx .claude/hooks/skill-activation-prompt.ts
+  npx tsx ~/.claude/hooks/skill-activation-prompt.ts
 ```
 
-**Test PreToolUse:**
-```bash
-cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts
-{"session_id":"test","tool_name":"Edit","tool_input":{"file_path":"test.ts"}}
-EOF
-```
+매칭된 스킬이 있으면 `🎯 SKILL ACTIVATION CHECK` 배너가 출력된다.
 
 ### Step 4: Refine Patterns
 
@@ -193,14 +196,12 @@ Based on testing:
 
 ## Enforcement Levels
 
-### BLOCK (Critical Guardrails)
+### BLOCK (Critical Guardrails — PreToolUse 훅 필요)
 
-- Physically prevents Edit/Write tool execution
-- Exit code 2 from hook, stderr → Claude
-- Claude sees message and must use skill to proceed
-- **Use For**: Critical mistakes, data integrity, security issues
-
-**Example:** Database column name verification
+- PreToolUse 훅에서 exit code 2로 Edit/Write 실행을 차단
+- stderr 메시지가 Claude에 전달되어 스킬 사용을 유도
+- **현재 harness-hub에 미구현** — 구현 시 [HOOK_MECHANISMS.md](HOOK_MECHANISMS.md) 참조
+- **Use For**: 크리티컬한 실수 방지, 데이터 정합성
 
 ### SUGGEST (Recommended)
 
@@ -223,70 +224,31 @@ Based on testing:
 
 ## Skip Conditions & User Control
 
-### 1. Session Tracking
+현재 harness-hub의 훅은 모두 non-blocking(advisory)이므로 별도 skip 메커니즘이 필요하지 않다.
 
-**Purpose:** Don't nag repeatedly in same session
+향후 PreToolUse guardrail 훅을 구현할 경우 다음 패턴을 사용할 수 있다:
 
-**How it works:**
-- First edit → Hook blocks, updates session state
-- Second edit (same session) → Hook allows
-- Different session → Blocks again
-
-**State File:** `.claude/hooks/state/skills-used-{session_id}.json`
-
-### 2. File Markers
-
-**Purpose:** Permanent skip for verified files
-
-**Marker:** `// @skip-validation`
-
-**Usage:**
-```typescript
-// @skip-validation
-import { PrismaService } from './prisma';
-// This file has been manually verified
-```
-
-**NOTE:** Use sparingly - defeats the purpose if overused
-
-### 3. Environment Variables
-
-**Purpose:** Emergency disable, temporary override
-
-**Global disable:**
-```bash
-export SKIP_SKILL_GUARDRAILS=true  # Disables ALL PreToolUse blocks
-```
-
-**Skill-specific:**
-```bash
-export SKIP_DB_VERIFICATION=true
-export SKIP_ERROR_REMINDER=true
-```
+- **Session tracking**: 세션당 1회만 차단 (`.claude/hooks/state/skills-used-{session_id}.json`)
+- **File markers**: `// @skip-validation` 주석으로 영구 스킵
+- **Environment variables**: `SKIP_SKILL_GUARDRAILS=true`로 긴급 비활성화
 
 ---
 
 ## Testing Checklist
 
-When creating a new skill, verify:
+스킬 생성 시 확인:
 
-- [ ] Skill file created in `.claude/skills/{name}/SKILL.md`
-- [ ] Proper frontmatter with name and description
-- [ ] Entry added to `skill-rules.json`
-- [ ] Keywords tested with real prompts
-- [ ] Intent patterns tested with variations
-- [ ] File path patterns tested with actual files
-- [ ] Content patterns tested against file contents
-- [ ] Block message is clear and actionable (if guardrail)
-- [ ] Skip conditions configured appropriately
-- [ ] Priority level matches importance
-- [ ] No false positives in testing
-- [ ] No false negatives in testing
-- [ ] Performance is acceptable (<100ms or <200ms)
-- [ ] JSON syntax validated: `jq . skill-rules.json`
-- [ ] **SKILL.md under 500 lines** ⭐
-- [ ] Reference files created if needed
-- [ ] Table of contents added to files > 100 lines
+- [ ] `.claude/skills/{name}/SKILL.md` 파일 생성
+- [ ] YAML frontmatter에 name과 description 포함
+- [ ] `skill-rules.json`에 엔트리 추가
+- [ ] Keywords를 실제 프롬프트로 테스트
+- [ ] Intent patterns를 다양한 변형으로 테스트
+- [ ] Priority 레벨이 중요도와 일치
+- [ ] False positive/negative 없음
+- [ ] JSON 유효성 검증: `jq . skill-rules.json`
+- [ ] **SKILL.md 500줄 이하** ⭐
+- [ ] Reference files 생성 (필요 시)
+- [ ] 100줄 넘는 reference file에 목차 추가
 
 ---
 
@@ -312,12 +274,12 @@ Complete skill-rules.json schema:
 - Validation guide and common errors
 
 ### [HOOK_MECHANISMS.md](HOOK_MECHANISMS.md)
-Deep dive into hook internals:
-- UserPromptSubmit flow (detailed)
-- PreToolUse flow (detailed)
-- Exit code behavior table (CRITICAL)
-- Session state management
-- Performance considerations
+훅 내부 동작 상세:
+- UserPromptSubmit flow (skill-activation-prompt, 현재 구현)
+- PostToolUse flow (post-tool-use-tracker, 현재 구현)
+- PreToolUse 참조 패턴 (guardrail 구현 시 사용)
+- Exit code 동작 테이블
+- 성능 고려사항
 
 ### [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 Comprehensive debugging guide:
@@ -355,26 +317,24 @@ Future enhancements and ideas:
 4. Refine patterns based on testing
 5. Keep SKILL.md under 500 lines
 
-### Trigger Types
+### Trigger Types (현재 구현)
 
-- **Keywords**: Explicit topic mentions
-- **Intent**: Implicit action detection
-- **File Paths**: Location-based activation
-- **Content**: Technology-specific detection
+- **Keywords**: 명시적 토픽 매칭 (대소문자 무시, 부분 문자열)
+- **Intent Patterns**: 암묵적 의도 감지 (정규식)
 
-See [TRIGGER_TYPES.md](TRIGGER_TYPES.md) for complete details.
+> File path 트리거와 content 트리거는 Claude Code에서 지원하지만 현재 harness-hub에 미구현.
+> 상세: [TRIGGER_TYPES.md](TRIGGER_TYPES.md)
 
 ### Enforcement
 
-- **BLOCK**: Exit code 2, critical only
-- **SUGGEST**: Inject context, most common
-- **WARN**: Advisory, rarely used
+- **SUGGEST**: 컨텍스트 주입, 가장 일반적 (현재 구현)
+- **WARN**: Advisory only (현재 구현)
+- **BLOCK**: PreToolUse exit code 2로 차단 (현재 미구현)
 
 ### Skip Conditions
 
-- **Session tracking**: Automatic (prevents repeated nags)
-- **File markers**: `// @skip-validation` (permanent skip)
-- **Env vars**: `SKIP_SKILL_GUARDRAILS` (emergency disable)
+현재 harness-hub 훅은 모두 non-blocking이므로 skip 불필요.
+Guardrail(PreToolUse) 구현 시: session tracking, file markers(`// @skip-validation`), env vars 사용 가능.
 
 ### Anthropic Best Practices
 
@@ -388,15 +348,13 @@ See [TRIGGER_TYPES.md](TRIGGER_TYPES.md) for complete details.
 
 ### Troubleshoot
 
-Test hooks manually:
+훅 수동 테스트:
 ```bash
-# UserPromptSubmit
-echo '{"prompt":"test"}' | npx tsx .claude/hooks/skill-activation-prompt.ts
+# UserPromptSubmit (skill-activation-prompt)
+echo '{"prompt":"react 컴포넌트 만들어줘"}' | npx tsx ~/.claude/hooks/skill-activation-prompt.ts
 
-# PreToolUse
-cat <<'EOF' | npx tsx .claude/hooks/skill-verification-guard.ts
-{"tool_name":"Edit","tool_input":{"file_path":"test.ts"}}
-EOF
+# PostToolUse (post-tool-use-tracker) — stdin에 JSON 전달
+echo '{"tool_name":"Edit","tool_input":{"file_path":"src/app.ts"},"session_id":"test"}' | bash ~/.claude/hooks/post-tool-use-tracker.sh
 ```
 
 See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for complete debugging guide.
@@ -411,8 +369,8 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for complete debugging guide.
 - `.claude/settings.json` - Hook registration
 
 **Hooks:**
-- `.claude/hooks/skill-activation-prompt.ts` - UserPromptSubmit
-- `.claude/hooks/error-handling-reminder.ts` - Stop event (gentle reminders)
+- `~/.claude/hooks/skill-activation-prompt.sh` → `skill-activation-prompt.ts` — UserPromptSubmit (스킬 제안)
+- `~/.claude/hooks/post-tool-use-tracker.sh` — PostToolUse (파일 편집 추적)
 
 **All Skills:**
 - `.claude/skills/*/SKILL.md` - Skill content files
