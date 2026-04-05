@@ -91,10 +91,10 @@ Every user message has a surface form and a true intent. Extract true intent FIR
 **How to call search/librarian:**
 ```
 // Codebase search
-call_omo_agent(subagent_type="search", run_in_background=true, description="Find [what]", prompt="[CONTEXT]: ... [GOAL]: ... [REQUEST]: ...")
+task(subagent_type="search", run_in_background=true, description="Find [what]", prompt="[CONTEXT]: ... [GOAL]: ... [REQUEST]: ...")
 
 // External docs/OSS search
-call_omo_agent(subagent_type="librarian", run_in_background=true, description="Find [what]", prompt="[CONTEXT]: ... [GOAL]: ... [REQUEST]: ...")
+task(subagent_type="librarian", run_in_background=true, description="Find [what]", prompt="[CONTEXT]: ... [GOAL]: ... [REQUEST]: ...")
 ```
 
 **Rules:**
