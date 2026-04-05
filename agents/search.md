@@ -2,6 +2,7 @@
 name: search
 description: "Fast lightweight search agent for quick file/path lookups and simple web queries. Use ONLY when the answer is a direct fact (path, version, signature, existence check) — NOT when understanding, analysis, or explanation is needed. For analysis or deep research use librarian."
 model: haiku
+effort: low
 tools: Read, Grep, Glob, Bash, WebFetch
 permissionMode: plan
 ---

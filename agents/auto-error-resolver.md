@@ -1,5 +1,6 @@
 ---
 model: sonnet
+effort: low
 name: auto-error-resolver
 description: Use this agent to automatically fix TypeScript compilation errors, lint errors, or type errors. Best used after post-tool-use-tracker has identified affected repos. Examples:\n\n<example>\nContext: TypeScript errors appeared after editing files.\nuser: "tsc 오류 고쳐줘"\nassistant: "auto-error-resolver 에이전트로 TypeScript 오류를 수정할게요"\n<commentary>\nTypeScript errors need systematic resolution.\n</commentary>\n</example>
 tools: Read, Write, Edit, Bash

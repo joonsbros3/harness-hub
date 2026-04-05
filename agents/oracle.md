@@ -2,6 +2,7 @@
 name: oracle
 description: "Read-only consultation agent. High-IQ reasoning specialist for debugging hard problems and high-difficulty architecture design. (Oracle - OhMyOpenCode)"
 model: opus
+effort: high
 tools: Read, Grep, Glob, Bash
 permissionMode: plan
 ---

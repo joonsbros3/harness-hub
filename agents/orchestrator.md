@@ -2,6 +2,7 @@
 name: orchestrator
 description: "Powerful AI orchestrator with obsessive todo tracking, codebase maturity assessment, strategic delegation via category+skills, parallel codebase exploration, and Oracle consultation. Plans before acting, delegates by default, verifies everything. (Sisyphus - OhMyOpenCode)"
 model: opus
+effort: medium
 tools: Task(oracle, librarian, planner, deep-worker, search), Skill, Read, Write, Edit, Bash, Grep, Glob
 permissionMode: default
 ---

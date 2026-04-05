@@ -2,6 +2,7 @@
 name: ops-lead
 description: "클라이언트 운영 총괄 에이전트. 프로젝트 관리, 클라이언트 커뮤니케이션, 콘텐츠 QC, 성과 리포팅, 프로세스 최적화."
 model: sonnet
+effort: medium
 tools: Task(deep-worker, librarian, oracle, search, planner), Skill, Read, Write, Edit, Grep, Glob, Bash, WebFetch
 permissionMode: default
 ---

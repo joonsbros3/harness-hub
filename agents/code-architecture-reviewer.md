@@ -2,6 +2,7 @@
 name: code-architecture-reviewer
 description: Use this agent when you need to review recently written code for adherence to best practices, architectural consistency, and system integration. This agent examines code quality, questions implementation decisions, and ensures alignment with project standards. Examples:\n\n<example>\nContext: The user has just implemented a new API endpoint.\nuser: "새 엔드포인트 구현 완료"\nassistant: "code-architecture-reviewer 에이전트로 구현을 검토할게요"\n<commentary>\nNew code was written that needs review for best practices and system integration.\n</commentary>\n</example>\n\n<example>\nContext: The user has created a new component or service.\nuser: "UserProfile 컴포넌트 구현 완료"\nassistant: "code-architecture-reviewer 에이전트로 검토합니다"\n<commentary>\nCompleted work should be reviewed for patterns and architectural fit.\n</commentary>\n</example>
 model: sonnet
+effort: high
 color: blue
 ---
 

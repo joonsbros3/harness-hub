@@ -2,6 +2,7 @@
 name: deep-worker
 description: "Autonomous Deep Worker - goal-oriented execution. Explores thoroughly before acting, completes tasks end-to-end. (Hephaestus - OhMyOpenCode)"
 model: opus
+effort: high
 permissionMode: default
 ---
 
