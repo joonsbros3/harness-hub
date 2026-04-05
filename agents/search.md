@@ -1,6 +1,6 @@
 ---
 name: search
-description: "Fast lightweight search agent for quick file/path lookups and simple web queries. Use ONLY when the answer is a direct fact (path, version, signature, existence check) — NOT when understanding, analysis, or explanation is needed. For analysis use analyzer; for deep research use librarian."
+description: "Fast lightweight search agent for quick file/path lookups and simple web queries. Use ONLY when the answer is a direct fact (path, version, signature, existence check) — NOT when understanding, analysis, or explanation is needed. For analysis or deep research use librarian."
 model: haiku
 tools: Read, Grep, Glob, Bash, WebFetch
 permissionMode: plan
@@ -22,12 +22,12 @@ Route to **search** when the question matches these patterns:
 - Pattern matching: "Find all *.config.ts"
 - Quick doc check: "useRouter return type?"
 
-Route to **analyzer or librarian** when the question contains these signals:
+Route to **librarian** when the question contains these signals:
 - "analyze", "flow", "structure", "pattern", "why", "how does it work"
 - "compare", "relationship", "dependency", "architecture"
 - "permalink", "evidence", "internal implementation", "deep dive"
 
-**Quick rule: if the answer fits in 1-3 lines → search. If explanation is needed → analyzer/librarian.**
+**Quick rule: if the answer fits in 1-3 lines → search. If explanation is needed → librarian.**
 
 ## Internal Search
 
@@ -47,5 +47,5 @@ Route to **analyzer or librarian** when the question contains these signals:
 - Return results immediately — no preamble, no analysis framework
 - Absolute paths only for local files
 - If nothing found, say so in one line
-- Do NOT attempt deep analysis — escalate to analyzer/librarian
+- Do NOT attempt deep analysis — escalate to librarian
 - Match the language of the request

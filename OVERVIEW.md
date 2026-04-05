@@ -74,10 +74,7 @@ harness-hub/
 │
 ├── hooks/               # 이벤트 훅
 │   ├── skill-activation-prompt.sh   스킬 자동 제안 (UserPromptSubmit)
-│   ├── post-tool-use-tracker.sh     파일 편집 추적 (PostToolUse)
-│   ├── claude-remote-notification.sh  원격 알림
-│   ├── claude-remote-session-start.sh 세션 시작 알림
-│   └── claude-remote-stop.sh          세션 종료 알림
+│   └── post-tool-use-tracker.sh     파일 편집 추적 (PostToolUse)
 │
 ├── bin/
 │   └── install.sh       harness-hub → ~/.claude/ 설치 스크립트
@@ -163,7 +160,7 @@ harness-hub/
 
 **도메인 지식 저장소** — SKILL.md의 태스크-지식 매핑 테이블이 핵심이다. 작업 유형별로 어떤 참조 파일을 읽어야 하는지 명시되어 있어, Claude가 필요한 지식만 선택적으로 로드한다.
 
-**Domain Expert Persona** — 각 SKILL.md 끝의 `## Domain Expert Persona` 섹션이 워커 에이전트의 정체성을 정의한다. 스킬이 로드되면 Claude는 해당 도메인 전문가처럼 판단하고 동작한다.
+**Domain Expert Persona** — 도메인 스킬(fe, be, qa 등)의 SKILL.md 끝에 `## Domain Expert Persona` 섹션이 있다. 스킬이 로드되면 Claude는 해당 도메인 전문가처럼 판단하고 동작한다. 유틸리티 스킬(commit-convention, pdf 등)은 이 섹션이 없다.
 
 ### 6.2 도메인 스킬
 
@@ -209,7 +206,7 @@ load_skills=["be"], prompt="... Python/Django 스택. Django 5+, DRF, pytest ...
 
 1. `skill-rules.json`에서 스킬 규칙 로드 (프로젝트 → 글로벌 폴백)
 2. 프롬프트를 키워드 + 인텐트 패턴으로 분석
-3. 매칭된 스킬을 Claude에게 주입
+3. 매칭된 스킬 추천 메시지를 Claude 컨텍스트에 삽입 (자동 로드가 아닌 제안)
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -229,15 +226,10 @@ ACTION: Use Skill tool BEFORE responding
 
 | 훅 파일 | 이벤트 | 역할 |
 |--------|--------|------|
-| `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 스킬 자동 제안 |
+| `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 관련 스킬 추천 메시지 출력 |
 | `post-tool-use-tracker.sh` | PostToolUse (Edit/Write) | 편집 파일 추적, TSC 커맨드 캐시 |
-| `claude-remote-notification.sh` | Notification | 원격 서버로 알림 전송 |
-| `claude-remote-session-start.sh` | SessionStart | 세션 시작 알림 |
-| `claude-remote-stop.sh` | Stop | 세션 종료 알림 |
 
 **post-tool-use-tracker** — 편집 로그를 `.claude/tsc-cache/{session_id}/`에 기록. `auto-error-resolver`가 이 캐시를 읽어 TypeScript 오류를 자동 수정한다.
-
-**원격 알림 훅** — `CLAUDE_REMOTE_API_KEY` 환경변수 필요. 장시간 작업을 모바일에서 모니터링할 때 유용.
 
 ---
 
@@ -434,28 +426,27 @@ cd /path/to/harness-hub
 bash bin/install.sh
 ```
 
-harness-hub의 `agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`을 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일이 있으면 `.bak`으로 백업 후 링크.
+harness-hub의 `agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`, `CLAUDE.md`를 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일이 있으면 `.bak`으로 백업 후 링크.
 
 **훅 의존성 설치** (skill-activation-prompt.sh가 Node.js 사용):
 ```bash
 cd ~/.claude/hooks && npm install
 ```
 
-**원격 알림 설정** (선택):
-```bash
-export CLAUDE_REMOTE_API_KEY="your-api-key"
-```
-
 ---
 
 ## 빠른 참조
 
+**터미널 명령 (셸에서 실행)**
 ```bash
 claude --agent orchestrator        # 일반 작업 (기본)
 claude --agent planner             # 요구사항 불명확 / 루프 조짐
 claude --agent oracle              # 아키텍처 자문
 claude --agent auto-error-resolver # TypeScript 오류 수정
+```
 
+**슬래시 커맨드 (Claude Code 대화창에서 입력)**
+```
 /init-deep                         # CLAUDE.md 계층 생성
 /ulw-loop                          # 자기개선 루프
 /dev-docs {태스크명}                # 작업 문서 3파일 생성

@@ -27,7 +27,7 @@ harness-hub/
 bash bin/install.sh
 ```
 
-`agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`을 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일은 `.bak`으로 백업.
+`agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`, `CLAUDE.md`를 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일은 `.bak`으로 백업.
 
 **훅 의존성 설치** (`skill-activation-prompt` 훅이 Node.js + tsx 사용):
 
@@ -35,11 +35,6 @@ bash bin/install.sh
 cd ~/.claude/hooks && npm install
 ```
 
-**원격 알림 설정** (선택):
-
-```bash
-export CLAUDE_REMOTE_API_KEY="your-api-key"
-```
 
 ## 에이전트 (9개)
 
@@ -97,11 +92,8 @@ export CLAUDE_REMOTE_API_KEY="your-api-key"
 
 | 훅 | 이벤트 | 역할 |
 |---|---|---|
-| `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 키워드 기반 스킬 자동 제안 |
+| `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 관련 스킬 추천 메시지 출력 |
 | `post-tool-use-tracker.sh` | PostToolUse | 편집 파일 추적 + TSC 커맨드 캐시 |
-| `claude-remote-notification.sh` | Notification | 원격 알림 전송 |
-| `claude-remote-session-start.sh` | SessionStart | 세션 시작 알림 |
-| `claude-remote-stop.sh` | Stop | 세션 종료 알림 |
 
 `skill-activation-prompt.sh`는 `skill-activation-prompt.ts`를 npx tsx로 실행하는 래퍼다.
 

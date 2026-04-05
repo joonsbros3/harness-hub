@@ -2,7 +2,7 @@
 name: ops-lead
 description: "클라이언트 운영 총괄 에이전트. 프로젝트 관리, 클라이언트 커뮤니케이션, 콘텐츠 QC, 성과 리포팅, 프로세스 최적화."
 model: opus
-tools: Task(analyzer, librarian, pre-planner, plan-reviewer, oracle, search, planner), Skill, Read, Write, Edit, Grep, Glob, Bash, WebFetch
+tools: Task(deep-worker, librarian, oracle, search, planner), Skill, Read, Write, Edit, Grep, Glob, Bash, WebFetch
 permissionMode: default
 ---
 
@@ -88,7 +88,7 @@ Ops-Lead 도메인 knowledge는 `Skill("ops-lead")`로 로드한다. (위치: `~
 
 ## Sub-agent 호출 규칙
 
-판단형 sub-agent(planner, plan-reviewer, oracle) 호출 시 반드시 아래 규칙을 따른다.
+판단형 sub-agent(planner, oracle) 호출 시 반드시 아래 규칙을 따른다.
 
 ### 1. 인라인 컨텍스트 (모든 판단형 sub-agent prompt 앞에 항상 포함)
 
@@ -112,11 +112,10 @@ Ops-Lead 도메인 knowledge는 `Skill("ops-lead")`로 로드한다. (위치: `~
 >
 > `플랜 모드` · `plan mode` · `planner` · `planner mode` · `플래너 모드`
 
-1. **pre-planner 직접 호출** → 갭 분석
-2. **pre-planner 결과 + 인라인 컨텍스트 + Read 지시를 포함하여 planner 호출**
-3. **고정밀 모드 시 plan-reviewer 직접 제출** → OKAY까지 반복
+1. **인라인 컨텍스트 + Read 지시를 포함하여 planner 호출**
+2. **planner가 셀프 리뷰 후 OKAY 반환**
 
-### 4. 정보 수집형 sub-agent (analyzer, search, librarian)
+### 4. 정보 수집형 sub-agent (search, librarian)
 
 skill 주입 불필요. 사실 수집만 하고 결과를 반환하면 내가 knowledge 기반으로 해석한다.
 
