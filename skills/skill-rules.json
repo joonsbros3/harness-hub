@@ -1,0 +1,193 @@
+{
+    "version": "1.0",
+    "description": "harness-hub 전역 스킬 자동 활성화 규칙. 프로젝트별 .claude/skills/skill-rules.json으로 오버라이드 가능.",
+    "skills": {
+        "fe": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "React/Next.js/TypeScript 프론트엔드 개발 가이드",
+            "promptTriggers": {
+                "keywords": [
+                    "react", "next.js", "nextjs", "component", "frontend", "프론트엔드",
+                    "typescript", "tsx", "jsx", "hook", "state", "zustand",
+                    "tanstack", "tailwind", "css", "styling", "ui", "컴포넌트",
+                    "페이지", "레이아웃", "모달", "폼", "렌더링"
+                ],
+                "intentPatterns": [
+                    "(create|add|build|implement|make).*?(component|page|ui|modal|form|hook)",
+                    "(fix|debug|refactor).*?(frontend|react|component|rendering)",
+                    "(how to|how do).*?(react|next\\.js|component|hook|state)"
+                ]
+            }
+        },
+        "be": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Node.js/Fastify + Python/Django 백엔드 개발 가이드",
+            "promptTriggers": {
+                "keywords": [
+                    "api", "endpoint", "backend", "백엔드", "fastify", "express",
+                    "django", "python", "node.js", "nodejs", "postgresql", "postgres",
+                    "database", "db", "drizzle", "prisma", "orm", "rest",
+                    "middleware", "controller", "service", "repository",
+                    "authentication", "authorization", "jwt", "oauth",
+                    "마이그레이션", "스키마", "쿼리"
+                ],
+                "intentPatterns": [
+                    "(create|add|build|implement).*?(api|endpoint|route|service|controller|repository)",
+                    "(fix|debug|handle).*?(error|exception|backend|api|database)",
+                    "(add|implement).*?(auth|middleware|validation|rate.?limit)",
+                    "(how to|best practice).*?(api|backend|database|fastify|django)"
+                ]
+            }
+        },
+        "macos": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "SwiftUI/AppKit macOS 앱 개발 가이드",
+            "promptTriggers": {
+                "keywords": [
+                    "swift", "swiftui", "appkit", "macos", "xcode", "ios",
+                    "view", "viewmodel", "observable", "binding", "state",
+                    "combine", "async/await", "actor", "menu bar", "menubar",
+                    "notification center", "xctest", "swift testing"
+                ],
+                "intentPatterns": [
+                    "(create|build|implement).*?(view|screen|window|menu|app)",
+                    "(fix|debug).*?(swift|swiftui|appkit|macos)",
+                    "(how to|best practice).*?(swift|swiftui|macos|appkit)"
+                ]
+            }
+        },
+        "designer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "UI/UX 디자인, 디자인 시스템, 와이어프레임",
+            "promptTriggers": {
+                "keywords": [
+                    "design", "ux", "ui/ux", "디자인", "와이어프레임", "wireframe",
+                    "figma", "prototype", "user flow", "usability", "accessibility",
+                    "a11y", "색상", "color", "typography", "spacing", "layout",
+                    "design system", "component library", "style guide"
+                ],
+                "intentPatterns": [
+                    "(design|create|improve).*?(ui|ux|interface|experience|flow)",
+                    "(review|critique|improve).*?(design|layout|visual)",
+                    "(how to|best practice).*?(design|ux|accessibility|a11y)"
+                ]
+            }
+        },
+        "po": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "제품 전략, PRD, 로드맵, 우선순위",
+            "promptTriggers": {
+                "keywords": [
+                    "prd", "product", "roadmap", "프로덕트", "로드맵",
+                    "user story", "feature", "requirement", "기능", "요구사항",
+                    "priority", "우선순위", "okr", "kpi", "metric",
+                    "sprint", "backlog", "epic", "stakeholder"
+                ],
+                "intentPatterns": [
+                    "(write|create|define).*?(prd|requirement|user story|feature spec)",
+                    "(prioritize|plan|roadmap).*?(feature|task|sprint|backlog)",
+                    "(how to|best practice).*?(product|feature|requirement|roadmap)"
+                ]
+            }
+        },
+        "qa": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "테스트 전략, 자동화, E2E, 성능/보안 테스트",
+            "promptTriggers": {
+                "keywords": [
+                    "test", "testing", "테스트", "qa", "spec", "vitest", "jest",
+                    "playwright", "cypress", "e2e", "unit test", "integration test",
+                    "coverage", "mock", "stub", "fixture", "assertion",
+                    "performance test", "load test", "security test"
+                ],
+                "intentPatterns": [
+                    "(write|create|add).*?(test|spec|e2e|unit|integration)",
+                    "(test|verify|validate).*?(feature|api|component|flow)",
+                    "(improve|increase).*?(coverage|test quality)",
+                    "(how to|best practice).*?(test|testing|qa|coverage)"
+                ]
+            }
+        },
+        "data-analyst": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "SQL, A/B 테스트, 퍼널/코호트 분석, 지표",
+            "promptTriggers": {
+                "keywords": [
+                    "sql", "analytics", "분석", "a/b test", "a/b 테스트",
+                    "cohort", "funnel", "retention", "conversion", "metric",
+                    "지표", "대시보드", "dashboard", "query", "쿼리",
+                    "bigquery", "snowflake", "redshift", "dbt", "looker"
+                ],
+                "intentPatterns": [
+                    "(write|create|optimize).*?(sql|query|analysis)",
+                    "(analyze|measure|track).*?(user|event|conversion|retention|funnel)",
+                    "(design|setup|implement).*?(a/b test|experiment|metric)",
+                    "(how to|best practice).*?(sql|analytics|analysis|metric)"
+                ]
+            }
+        },
+        "commit-convention": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Conventional Commits 기반 커밋 컨벤션",
+            "promptTriggers": {
+                "keywords": [
+                    "commit", "커밋", "conventional commit", "git commit",
+                    "commit message", "커밋 메시지", "changelog", "semantic versioning"
+                ],
+                "intentPatterns": [
+                    "(write|create|format).*?(commit|commit message)",
+                    "(how to|what is).*?(conventional commit|commit format|commit convention)"
+                ]
+            }
+        },
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "스킬 생성·관리, skill-rules.json, 훅 시스템",
+            "promptTriggers": {
+                "keywords": [
+                    "skill", "스킬", "create skill", "add skill", "스킬 생성",
+                    "skill-rules", "skill-rules.json", "skill activation",
+                    "hook system", "훅 시스템", "skill trigger", "500-line rule",
+                    "progressive disclosure", "skill developer"
+                ],
+                "intentPatterns": [
+                    "(create|add|modify|build).*?skill",
+                    "(how do|how does|explain).*?skill.*?(work|activate|trigger)",
+                    "skill.*?(system|rules|trigger|hook)"
+                ]
+            }
+        }
+    },
+    "notes": {
+        "override": "프로젝트별 .claude/skills/skill-rules.json으로 이 규칙을 오버라이드할 수 있다",
+        "enforcement_types": {
+            "suggest": "스킬 제안 (실행 차단 없음)",
+            "block": "스킬 로드 전 실행 차단 (guardrail용)",
+            "warn": "경고만 표시"
+        },
+        "priority_levels": {
+            "critical": "항상 트리거",
+            "high": "대부분의 매칭에서 트리거",
+            "medium": "명확한 매칭에서 트리거",
+            "low": "명시적 언급 시만 트리거"
+        }
+    }
+}

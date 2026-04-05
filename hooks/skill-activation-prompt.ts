@@ -1,0 +1,130 @@
+#!/usr/bin/env node
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+
+interface HookInput {
+    session_id: string;
+    transcript_path: string;
+    cwd: string;
+    permission_mode: string;
+    prompt: string;
+}
+
+interface PromptTriggers {
+    keywords?: string[];
+    intentPatterns?: string[];
+}
+
+interface SkillRule {
+    type: 'guardrail' | 'domain';
+    enforcement: 'block' | 'suggest' | 'warn';
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    promptTriggers?: PromptTriggers;
+}
+
+interface SkillRules {
+    version: string;
+    skills: Record<string, SkillRule>;
+}
+
+interface MatchedSkill {
+    name: string;
+    matchType: 'keyword' | 'intent';
+    config: SkillRule;
+}
+
+async function main() {
+    try {
+        const input = readFileSync(0, 'utf-8');
+        const data: HookInput = JSON.parse(input);
+        const prompt = data.prompt.toLowerCase();
+
+        // 프로젝트 레벨 우선, 글로벌 폴백
+        const projectDir = process.env.CLAUDE_PROJECT_DIR || '';
+        const projectRulesPath = projectDir
+            ? join(projectDir, '.claude', 'skills', 'skill-rules.json')
+            : '';
+        const globalRulesPath = join(homedir(), '.claude', 'skills', 'skill-rules.json');
+
+        let rules: SkillRules;
+        if (projectRulesPath && existsSync(projectRulesPath)) {
+            rules = JSON.parse(readFileSync(projectRulesPath, 'utf-8'));
+        } else if (existsSync(globalRulesPath)) {
+            rules = JSON.parse(readFileSync(globalRulesPath, 'utf-8'));
+        } else {
+            process.exit(0); // skill-rules.json 없으면 조용히 종료
+        }
+
+        const matchedSkills: MatchedSkill[] = [];
+
+        for (const [skillName, config] of Object.entries(rules.skills)) {
+            const triggers = config.promptTriggers;
+            if (!triggers) continue;
+
+            if (triggers.keywords) {
+                const keywordMatch = triggers.keywords.some(kw =>
+                    prompt.includes(kw.toLowerCase())
+                );
+                if (keywordMatch) {
+                    matchedSkills.push({ name: skillName, matchType: 'keyword', config });
+                    continue;
+                }
+            }
+
+            if (triggers.intentPatterns) {
+                const intentMatch = triggers.intentPatterns.some(pattern => {
+                    const regex = new RegExp(pattern, 'i');
+                    return regex.test(prompt);
+                });
+                if (intentMatch) {
+                    matchedSkills.push({ name: skillName, matchType: 'intent', config });
+                }
+            }
+        }
+
+        if (matchedSkills.length > 0) {
+            let output = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+            output += '🎯 SKILL ACTIVATION CHECK\n';
+            output += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+
+            const critical = matchedSkills.filter(s => s.config.priority === 'critical');
+            const high = matchedSkills.filter(s => s.config.priority === 'high');
+            const medium = matchedSkills.filter(s => s.config.priority === 'medium');
+            const low = matchedSkills.filter(s => s.config.priority === 'low');
+
+            if (critical.length > 0) {
+                output += '⚠️ CRITICAL SKILLS (REQUIRED):\n';
+                critical.forEach(s => output += `  → ${s.name}\n`);
+                output += '\n';
+            }
+            if (high.length > 0) {
+                output += '📚 RECOMMENDED SKILLS:\n';
+                high.forEach(s => output += `  → ${s.name}\n`);
+                output += '\n';
+            }
+            if (medium.length > 0) {
+                output += '💡 SUGGESTED SKILLS:\n';
+                medium.forEach(s => output += `  → ${s.name}\n`);
+                output += '\n';
+            }
+            if (low.length > 0) {
+                output += '📌 OPTIONAL SKILLS:\n';
+                low.forEach(s => output += `  → ${s.name}\n`);
+                output += '\n';
+            }
+
+            output += 'ACTION: Use Skill tool BEFORE responding\n';
+            output += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+
+            console.log(output);
+        }
+
+        process.exit(0);
+    } catch (err) {
+        // 에러 시 조용히 종료 (훅 실패가 Claude를 막으면 안 됨)
+        process.exit(0);
+    }
+}
+
+main().catch(() => process.exit(0));
