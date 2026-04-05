@@ -4,6 +4,9 @@
 *~
 .env
 
+# 훅 런타임 의존성 — 레포에 포함하지 않음
+hooks/node_modules/
+
 # 다른 프로젝트 참고용 — 레포에 포함하지 않음
 diet103-main/
 
@@ -25,3 +28,5 @@ skills/ops-lead/*
 !skills/ops-lead/SKILL.md
 skills/data-analyst/*
 !skills/data-analyst/SKILL.md
+skills/macos/*
+!skills/macos/SKILL.md

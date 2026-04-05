@@ -73,7 +73,7 @@ TMPL
   done <<< "$referenced_files"
 
   if [ "$skill_missing" -gt 0 ]; then
-    echo "⚠️  $skill_name — $skill_missing개 파일 누락:"
+    echo "⚠️  $skill_name — ${skill_missing}개 파일 누락:"
     printf "$missing_list"
   else
     echo "✅ $skill_name — 참조 파일 모두 존재"
@@ -82,12 +82,12 @@ done
 
 echo ""
 if [[ "$BOOTSTRAP" == true ]] && [ "$created_count" -gt 0 ]; then
-  echo "결과: $checked_count개 확인, $created_count개 템플릿 생성됨"
+  echo "결과: ${checked_count}개 확인, ${created_count}개 템플릿 생성됨"
   echo "  → 생성된 파일에 도메인 knowledge를 채워주세요."
 elif [ "$missing_count" -gt 0 ]; then
-  echo "결과: $checked_count개 확인, $missing_count개 누락"
+  echo "결과: ${checked_count}개 확인, ${missing_count}개 누락"
   echo "  → bash bin/check-skills.sh --bootstrap 으로 빈 템플릿을 생성할 수 있습니다."
 else
-  echo "결과: $checked_count개 확인, 모두 정상 ✅"
+  echo "결과: ${checked_count}개 확인, 모두 정상 ✅"
 fi
 echo ""

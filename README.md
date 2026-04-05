@@ -45,20 +45,44 @@ cd ~/.claude/hooks && npm install
 
 ## Knowledge 파일 정책
 
-도메인 스킬(`fe`, `be`, `qa` 등)의 SKILL.md는 git에 추적되지만, SKILL.md가 참조하는 **knowledge 파일은 git에 포함되지 않는다** (`.gitignore`로 제외). 이유:
+도메인 스킬(`fe`, `be`, `qa` 등)의 SKILL.md는 git에 추적되지만, SKILL.md가 참조하는 **knowledge 파일은 git에 포함되지 않는다** (`.gitignore`로 제외).
 
-- Knowledge 파일은 개인의 기술 스택·프로젝트 컨벤션에 맞게 커스터마이징하는 파일이다
-- 각자의 환경에서 직접 작성하거나, `Skill("skill-developer")`를 사용하여 생성한다
+### 왜 knowledge 파일이 비어 있는가
 
-**최초 설치 후 knowledge 파일 셋업:**
+이 레포를 클론하면 `skills/fe/SKILL.md`는 있지만 `skills/fe/code-quality.md` 같은 knowledge 파일은 없다. 이는 의도된 설계다:
+
+- SKILL.md는 **태스크-지식 매핑 테이블** (어떤 작업에 어떤 파일을 읽어야 하는지)을 정의한다
+- Knowledge 파일은 **개인의 기술 스택·프로젝트 컨벤션에 맞게 커스터마이징**하는 파일이다
+- 동일한 `fe` 스킬이라도 Zustand를 쓰는 사람과 Redux를 쓰는 사람의 knowledge는 다르다
+
+### 새 환경에서 bootstrap하는 법
 
 ```bash
-# 누락된 knowledge 파일 확인
+# 1. 설치
+bash bin/install.sh
+
+# 2. 누락된 knowledge 파일 확인
 bash bin/check-skills.sh
 
-# 빈 템플릿 자동 생성 (선택)
+# 3. 빈 템플릿 자동 생성
 bash bin/check-skills.sh --bootstrap
+
+# 4. 각 템플릿을 열고 도메인 knowledge를 채운다
+#    또는 Skill("skill-developer")를 로드하여 Claude가 생성하도록 한다
 ```
+
+**유틸리티 스킬**(commit-convention, pdf, pptx 등)은 SKILL.md 자체에 모든 knowledge가 포함되어 있어 별도 파일이 불필요하다.
+
+## 에이전트·스킬 관리 원칙
+
+### 공통 규칙 중복 관리
+
+`orchestrator.md`와 `deep-worker.md`에 동일한 규칙이 반복되는 지점이 있다 (예: `background_cancel` 정책, 검증 절차, 코드 품질 규칙). 이 중복은 의도적이다 — 각 에이전트가 독립적으로 실행되므로 자체 프롬프트에 규칙이 포함되어야 한다.
+
+**관리 원칙:**
+- 중복된 규칙을 수정할 때, **양쪽을 반드시 동시에 수정**한다
+- 충돌이 발생하면 orchestrator를 정본(source of truth)으로 한다
+- 향후 중복이 3개 이상 에이전트에 퍼지면, `skills/shared-rules/SKILL.md`로 추출하여 `load_skills`로 주입하는 것을 검토한다
 
 ## 에이전트 (9개)
 
