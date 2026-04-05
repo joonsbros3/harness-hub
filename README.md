@@ -8,40 +8,63 @@ Claude Code 개인 하네스 설정 저장소.
 
 ```
 harness-hub/
-├── agents/          # 핵심 에이전트 (7개)
+├── agents/          # 핵심 에이전트 (9개)
 ├── skills/          # 도메인 스킬 + 유틸리티 스킬
-├── commands/        # 슬래시 커맨드 (2개)
-├── hooks/           # 이벤트 훅 스크립트
+├── commands/        # 슬래시 커맨드 (4개)
+├── hooks/           # 이벤트 훅 스크립트 (sh + ts)
+├── bin/
+│   └── install.sh   # ~/.claude/ 설치 스크립트
 ├── CLAUDE.md        # 글로벌 지침
 ├── settings.json    # Claude Code 설정
-├── GUIDE.md         # 아키텍처 설명
-└── STRATEGY.md      # 활용 전략
+├── keybindings.json # 키 바인딩
+├── OVERVIEW.md      # 전체 구조·사용법 가이드
+└── BACKGROUND.md    # 철학·구축 히스토리·개인화 방법
+```
+
+## 설치
+
+```bash
+bash bin/install.sh
+```
+
+`agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`을 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일은 `.bak`으로 백업.
+
+**훅 의존성 설치** (`skill-activation-prompt` 훅이 Node.js + tsx 사용):
+
+```bash
+cd ~/.claude/hooks && npm install
+```
+
+**원격 알림 설정** (선택):
+
+```bash
+export CLAUDE_REMOTE_API_KEY="your-api-key"
 ```
 
 ## 에이전트 (9개)
 
 | 파일 | 모델 | 역할 |
 |---|---|---|
-| `orchestrator.md` | opus | 메인 진입점. 요청 분류 → 스킬 기반 위임 → 검증 |
-| `planner.md` | opus | 인터뷰 → 갭 분석 → 작업 계획 수립 (구현 없음) |
-| `oracle.md` | opus | 아키텍처 설계, 고난이도 디버깅, 자기 검토 (읽기 전용) |
-| `deep-worker.md` | opus | 자율 심층 작업 실행 |
-| `librarian.md` | sonnet | 외부 문서/OSS 탐색 |
-| `search.md` | haiku | 빠른 파일/사실 검색 |
-| `ops-lead.md` | sonnet | 운영, 프로젝트 관리 |
-| `code-architecture-reviewer.md` | sonnet | 코드 아키텍처 검토, 품질 분석 |
+| `orchestrator.md` | Opus | 메인 진입점. 요청 분류 → 스킬 기반 위임 → 검증 |
+| `planner.md` | Opus | 인터뷰 → 갭 분석 → 작업 계획 수립 (구현 없음) |
+| `oracle.md` | Opus | 아키텍처 설계, 고난이도 디버깅 (읽기 전용) |
+| `deep-worker.md` | Opus | 자율 심층 작업 실행 |
+| `librarian.md` | Sonnet | 외부 문서·OSS 탐색 |
+| `search.md` | Haiku | 빠른 파일·사실 검색 |
+| `ops-lead.md` | Sonnet | 운영, 프로젝트 관리 |
+| `code-architecture-reviewer.md` | Sonnet | 코드 아키텍처 검토 |
 | `auto-error-resolver.md` | — | TypeScript 컴파일 오류 자동 수정 |
 
 ## 스킬
 
-### 도메인 스킬 (전문가 페르소나 + 지식 포함)
+### 도메인 스킬
 
 | 스킬 | 커버 영역 |
 |---|---|
-| `fe` | React/Next.js, TypeScript, 상태관리, 테스트, 성능, 접근성 |
-| `be` | Node.js/Fastify + Python/Django, PostgreSQL, API, 보안 |
+| `fe` | React/Next.js, TypeScript, 상태관리, 테스트, 성능 |
+| `be` | Node.js/Fastify + Python/Django, PostgreSQL, API |
 | `macos` | SwiftUI, AppKit, Swift Concurrency, XCTest |
-| `designer` | UI/UX, 디자인 시스템, 와이어프레임, 사용성 |
+| `designer` | UI/UX, 디자인 시스템, 접근성 |
 | `po` | 제품 전략, PRD, 우선순위, 로드맵 |
 | `qa` | 테스트 전략, 자동화, 성능/보안 테스트 |
 | `data-analyst` | SQL, A/B 테스트, 퍼널/코호트 분석 |
@@ -52,31 +75,14 @@ harness-hub/
 | 스킬 | 역할 |
 |---|---|
 | `commit-convention` | Conventional Commits 기반 커밋 컨벤션 |
-| `pdf` | PDF 읽기·병합·분할·OCR 처리 |
+| `pdf` | PDF 읽기·병합·분할·OCR |
 | `pptx` | PPTX 읽기·생성·편집 |
 | `mcp-builder` | MCP 서버 설계 및 구축 |
 | `remotion-best-practices` | Remotion(React 비디오) 베스트 프랙티스 |
 | `vercel-react-best-practices` | React/Next.js 성능 최적화 64개 규칙 |
 | `web-design-guidelines` | UI 접근성·UX 가이드 |
-| `find-skills` | 오픈 스킬 생태계 검색 및 설치 |
+| `find-skills` | 오픈 스킬 생태계 검색·설치 |
 | `skill-developer` | 스킬 생성·관리, skill-rules.json, 훅 시스템 |
-
-## 플러그인 (10개)
-
-`settings.json`의 `enabledPlugins`에 선언. Claude Code가 자동으로 설치/업데이트한다.
-
-| 플러그인 | 용도 |
-|---|---|
-| `superpowers` | 스킬 자동 평가/활성화 |
-| `context7` | 라이브러리 공식 문서 실시간 검색 |
-| `code-review` | 멀티 에이전트 코드 리뷰 |
-| `feature-dev` | 탐색→설계→구현→리뷰 워크플로우 |
-| `frontend-design` | 프론트엔드 UI/UX 디자인 |
-| `skill-creator` | 스킬 생성·테스트·개선 |
-| `typescript-lsp` | TypeScript 타입 진단 |
-| `playwright` | 브라우저 자동화 테스트 |
-| `github` | GitHub 이슈·PR 관리 |
-| `vercel` | Vercel 배포 연동 |
 
 ## 커맨드 (4개)
 
@@ -97,47 +103,34 @@ harness-hub/
 | `claude-remote-session-start.sh` | SessionStart | 세션 시작 알림 |
 | `claude-remote-stop.sh` | Stop | 세션 종료 알림 |
 
-훅 스크립트 위치: `~/.claude/hooks/`
+`skill-activation-prompt.sh`는 `skill-activation-prompt.ts`를 npx tsx로 실행하는 래퍼다.
 
-> `skill-activation-prompt` 훅은 Node.js + tsx가 필요하다. 최초 설치 시 `~/.claude/hooks/`에서 `npm install` 실행.  
-> `skill-rules.json`은 `~/.claude/skills/skill-rules.json` (글로벌) 또는 프로젝트의 `.claude/skills/skill-rules.json` (오버라이드)에서 읽는다.
+## 플러그인 (10개)
+
+`settings.json`의 `enabledPlugins`에 선언. Claude Code가 자동으로 설치·업데이트한다.
+
+| 플러그인 | 용도 |
+|---|---|
+| `superpowers` | 스킬 자동 평가·활성화 |
+| `context7` | 라이브러리 공식 문서 실시간 검색 |
+| `code-review` | 멀티 에이전트 코드 리뷰 |
+| `feature-dev` | 탐색→설계→구현→리뷰 워크플로우 |
+| `frontend-design` | 프론트엔드 UI/UX 디자인 |
+| `skill-creator` | 스킬 생성·테스트·개선 |
+| `typescript-lsp` | TypeScript 타입 진단 |
+| `playwright` | 브라우저 자동화 테스트 |
+| `github` | GitHub 이슈·PR 관리 |
+| `vercel` | Vercel 배포 연동 |
 
 ## 사용법
 
-### 기본
-
 ```bash
-# 대부분의 작업
-claude --agent orchestrator
-
-# 복잡한 기능 설계 / 요구사항 불명확할 때
-claude --agent planner
-
-# 아키텍처 자문, 어려운 디버깅
-claude --agent oracle
+claude --agent orchestrator        # 일반 작업 (기본)
+claude --agent planner             # 요구사항 불명확 / 루프 조짐
+claude --agent oracle              # 아키텍처 자문
+claude --agent auto-error-resolver # TypeScript 오류 수정
 ```
 
-### 도메인 작업 위임 방식
+스킬 로드는 에이전트 프롬프트 내 `load_skills=["fe"]` 형태로 지정한다.
 
-orchestrator가 자동으로 처리하지만, 직접 위임할 때는 스킬을 로드한다.
-
-```typescript
-// FE 작업
-task(category="visual-engineering", load_skills=["fe"], prompt="...")
-
-// BE 작업 (Node.js)
-task(category="unspecified-high", load_skills=["be"], prompt="...Node.js/Fastify 스택...")
-
-// BE 작업 (Python)
-task(category="unspecified-high", load_skills=["be"], prompt="...Python/Django 스택...")
-```
-
-## 환경 변수
-
-원격 훅 스크립트가 API 키를 사용한다.
-
-```bash
-export CLAUDE_REMOTE_API_KEY="your-api-key"
-```
-
-셸 프로필(`~/.zshrc` 등)에 추가하면 영구 적용된다.
+자세한 내용은 [OVERVIEW.md](OVERVIEW.md) 및 [BACKGROUND.md](BACKGROUND.md) 참조.

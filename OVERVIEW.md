@@ -1,4 +1,4 @@
-# Harness-Hub 완전 가이드
+# Harness-Hub
 
 > Claude Code를 위한 멀티에이전트 오케스트레이션 하네스
 
@@ -6,58 +6,46 @@
 
 ## 목차
 
-1. [소개](#1-소개)
+1. [무엇을 해결하는가](#1-무엇을-해결하는가)
 2. [설계 철학](#2-설계-철학)
-3. [전체 구조](#3-전체-구조)
-4. [에이전트 시스템](#4-에이전트-시스템)
-5. [스킬 시스템](#5-스킬-시스템)
-6. [스킬 자동 활성화](#6-스킬-자동-활성화)
-7. [훅 시스템](#7-훅-시스템)
-8. [슬래시 커맨드](#8-슬래시-커맨드)
-9. [플러그인](#9-플러그인)
-10. [핵심 패턴](#10-핵심-패턴)
-11. [주요 워크플로우](#11-주요-워크플로우)
-12. [설치 및 설정](#12-설치-및-설정)
+3. [구조](#3-구조)
+4. [진입점 선택](#4-진입점-선택)
+5. [에이전트 시스템](#5-에이전트-시스템)
+6. [스킬 시스템](#6-스킬-시스템)
+7. [스킬 자동 활성화](#7-스킬-자동-활성화)
+8. [훅 시스템](#8-훅-시스템)
+9. [슬래시 커맨드](#9-슬래시-커맨드)
+10. [플러그인](#10-플러그인)
+11. [핵심 패턴](#11-핵심-패턴)
+12. [QA & PR 프로세스](#12-qa--pr-프로세스)
+13. [운영 체크리스트](#13-운영-체크리스트)
+14. [트러블슈팅](#14-트러블슈팅)
+15. [설치](#15-설치)
 
 ---
 
-## 1. 소개
-
-**Harness-Hub**는 Claude Code를 위한 멀티에이전트 오케스트레이션 하네스다.
-
-복잡한 소프트웨어 개발 작업을 **계획(Plan) → 실행(Execute) → 검증(Verify)** 사이클로 구조화하고, 도메인별 전문 지식을 스킬 시스템으로 주입하여 Claude가 시니어 엔지니어 수준으로 작업할 수 있게 한다.
-
-### 무엇을 해결하는가
+## 1. 무엇을 해결하는가
 
 | 문제 | 해결 방법 |
 |------|----------|
-| 복잡한 작업에서 Claude가 방향을 잃음 | Planner 에이전트로 인터뷰 → 단계별 계획 수립 |
-| 도메인 전문 지식 없이 generic한 코드 생성 | 스킬 시스템으로 전문가 페르소나 + 지식 주입 |
-| 하나의 에이전트가 모든 걸 처리하는 비효율 | 역할별 전문 에이전트에 위임 + 병렬 실행 |
-| 세션 간 컨텍스트 유실 | Notepad 시스템 + 개발 문서 3파일 패턴 |
+| 복잡한 작업에서 방향을 잃음 | Planner로 인터뷰 → 단계별 계획 수립 |
+| 도메인 지식 없이 generic한 코드 생성 | 스킬 시스템으로 전문가 페르소나 + 지식 주입 |
+| 하나의 에이전트가 모든 걸 처리하는 비효율 | 역할별 에이전트에 위임 + 병렬 실행 |
+| 세션 간 컨텍스트 유실 | Notepad + dev-docs 3파일 패턴 |
 | 스킬을 언제 써야 할지 기억하기 어려움 | 프롬프트 키워드 기반 스킬 자동 제안 훅 |
 
 ---
 
 ## 2. 설계 철학
 
-### 4대 원칙
-
-**1. 하네스는 얇게, 지능은 모델에**
-구조와 규칙은 최소한으로 유지한다. 실제 판단과 추론은 Claude 모델이 담당한다. 과도한 규칙은 오히려 품질을 떨어뜨린다.
-
-**2. 역할 분리**
-계획(Planner) / 실행(Orchestrator + Deep-Worker) / 전문 지식(Skills) / 검증(Oracle)을 명확히 구분한다. 한 에이전트가 모든 역할을 수행하지 않는다.
-
-**3. 스킬 우선**
-새 도메인이 필요할 때 에이전트를 추가하지 않는다. 스킬로 전문가 지식을 주입하고, 기존 에이전트가 그 지식을 활용한다.
-
-**4. 직접 탐색**
-코드베이스 탐색은 전용 에이전트가 아닌 Grep/Glob/Read 직접 도구로 수행한다. 에이전트 위임 오버헤드 없이 더 빠르고 정확하다.
+1. **하네스는 얇게, 지능은 모델에** — 구조는 최소한으로. 판단과 추론은 Claude 모델이 담당한다.
+2. **역할 분리** — 계획(Planner) / 실행(Orchestrator + Deep-Worker) / 전문 지식(Skills) / 검증(Oracle)을 명확히 구분한다.
+3. **스킬 우선** — 새 도메인이 필요할 때 에이전트를 추가하지 않는다. 스킬로 전문가 지식을 주입한다.
+4. **직접 탐색** — 코드베이스 탐색은 전용 에이전트가 아닌 Grep/Glob/Read 직접 도구로 수행한다.
 
 ---
 
-## 3. 전체 구조
+## 3. 구조
 
 ```
 harness-hub/
@@ -73,58 +61,65 @@ harness-hub/
 │   └── auto-error-resolver.md          TypeScript 오류 수정
 │
 ├── skills/              # 도메인 지식 + 전문가 페르소나
-│   ├── fe/                  React/Next.js/TypeScript
-│   ├── be/                  Node.js/Fastify + Python/Django
-│   ├── macos/               SwiftUI/AppKit/Swift
-│   ├── designer/            UI/UX 디자인
-│   ├── po/                  프로덕트 오너십
-│   ├── qa/                  품질 보증·테스트
-│   ├── data-analyst/        데이터 분석·SQL
-│   ├── ops-lead/            운영·CI/CD
-│   ├── skill-developer/     스킬 생성·관리 메타 스킬
-│   ├── commit-convention/   Conventional Commits
-│   ├── pdf/                 PDF 처리
-│   ├── pptx/                PowerPoint 처리
-│   ├── mcp-builder/         MCP 서버 설계·구축
-│   ├── find-skills/         오픈 스킬 생태계 탐색
-│   ├── remotion-best-practices/   React 비디오
-│   ├── vercel-react-best-practices/  React 성능 최적화
-│   ├── web-design-guidelines/     UI 접근성·UX
+│   ├── fe/  be/  macos/  designer/  po/  qa/  data-analyst/  ops-lead/
+│   ├── commit-convention/  pdf/  pptx/  mcp-builder/  find-skills/
+│   ├── remotion-best-practices/  vercel-react-best-practices/  web-design-guidelines/
 │   └── skill-rules.json     스킬 자동 활성화 규칙
 │
-├── commands/            # 슬래시 커맨드 4개
+├── commands/            # 슬래시 커맨드
 │   ├── init-deep.md         계층적 CLAUDE.md 생성
 │   ├── ulw-loop.md          Oracle 검증 자기개선 루프
 │   ├── dev-docs.md          작업 문서 3파일 생성
 │   └── dev-docs-update.md   컨텍스트 압축 전 문서 갱신
 │
 ├── hooks/               # 이벤트 훅
-│   ├── skill-activation-prompt.sh/.ts   스킬 자동 제안
-│   ├── post-tool-use-tracker.sh          파일 편집 추적
-│   ├── claude-remote-notification.sh     원격 알림
-│   ├── claude-remote-session-start.sh    세션 시작 알림
-│   └── claude-remote-stop.sh             세션 종료 알림
+│   ├── skill-activation-prompt.sh   스킬 자동 제안 (UserPromptSubmit)
+│   ├── post-tool-use-tracker.sh     파일 편집 추적 (PostToolUse)
+│   ├── claude-remote-notification.sh  원격 알림
+│   ├── claude-remote-session-start.sh 세션 시작 알림
+│   └── claude-remote-stop.sh          세션 종료 알림
+│
+├── bin/
+│   └── install.sh       harness-hub → ~/.claude/ 설치 스크립트
 │
 ├── settings.json        # Claude Code 전역 설정
+├── keybindings.json     # 키 바인딩
 ├── CLAUDE.md            # 프로젝트 가이드라인
-├── OVERVIEW.md          # 이 문서
-├── GUIDE.md             # 아키텍처 가이드
-└── STRATEGY.md          # 활용 전략
+└── OVERVIEW.md          # 이 문서
 ```
 
 ---
 
-## 4. 에이전트 시스템
+## 4. 진입점 선택
 
-에이전트는 `claude --agent {이름}` 또는 Task 도구로 서브에이전트로 실행된다.
+```
+요청 유형                                      → 선택
+──────────────────────────────────────────────────────
+간단한 코드 수정, 파일 탐색                    → claude (기본 세션)
+복잡한 구현, 도메인 전문성 필요                → claude --agent orchestrator
+요구사항이 흐리거나 2개 이상 모듈이 얽힐 때    → claude --agent planner
+아키텍처 자문, 어려운 디버깅                   → claude --agent oracle
+```
 
-### 4.1 에이전트 역할 맵
+**기본값은 orchestrator다.** planner는 루프 조짐이 보이거나 요구사항이 불명확할 때 전환한다.
+
+| 상황 | orchestrator | planner |
+|------|-------------|---------|
+| 요구사항이 명확할 때 | ✅ 즉시 실행 | 과도함 |
+| 2개 이상 모듈이 얽히거나 방향이 흐릴 때 | 잘못된 방향으로 갈 수 있음 | ✅ 인터뷰 후 계획 |
+| 버그 수정 | ✅ 직접 | 오버엔지니어링 |
+| 아키텍처 결정 | ✅ oracle 자문 | ✅ oracle 자문 포함 계획 |
+
+---
+
+## 5. 에이전트 시스템
+
+### 5.1 에이전트 역할 맵
 
 ```
 사용자 요청
     │
     ├─ orchestrator (메인 진입점)
-    │       │
     │       ├─ 직접 처리 (trivial 작업)
     │       ├─ deep-worker (도메인 스킬 + 구현)
     │       ├─ planner (계획 수립 필요 시)
@@ -132,357 +127,139 @@ harness-hub/
     │       ├─ librarian (외부 문서 필요 시, background)
     │       └─ search (빠른 파일 탐색)
     │
-    ├─ planner (계획 수립 전용)
-    │       │
-    │       ├─ 직접 탐색 (Grep/Glob/Read)
-    │       ├─ librarian (외부 참조, background)
-    │       └─ oracle (아키텍처 검토)
-    │
-    └─ oracle (읽기 전용 자문)
+    └─ planner (계획 수립 전용)
+            ├─ 직접 탐색 (Grep/Glob/Read)
+            ├─ librarian (외부 참조, background)
+            └─ oracle (아키텍처 검토)
 ```
 
-### 4.2 에이전트 상세
+### 5.2 에이전트 상세
 
-#### Orchestrator
-- **모델**: Claude Opus
-- **역할**: 메인 진입점. 요청 분류 → 도메인 감지 → 적절한 에이전트/스킬로 위임 → 결과 검증
-- **핵심 능력**:
-  - 요청 유형 자동 분류 (Trivial / Explicit / Exploratory / Ambiguous)
-  - 도메인 트리거 감지 시 강제 위임 (FE → `load_skills=["fe"]`)
-  - 병렬 코드베이스 탐색
-  - Notepad 시스템으로 서브에이전트 간 지식 공유
-- **실행**: `claude --agent orchestrator`
+**Orchestrator** (Opus) — 메인 진입점. 요청 분류 → 도메인 감지 → 위임 → 결과 검증. `claude --agent orchestrator`
 
-#### Planner
-- **모델**: Claude Opus
-- **역할**: 구현하지 않는 전략가. 인터뷰 → 코드베이스 탐색 → 갭 분석 → 실행 계획 생성
-- **핵심 능력**:
-  - 요구사항 인터뷰 (모호한 요청 명확화)
-  - 병렬 Grep/Glob/Read로 직접 코드베이스 탐색
-  - 내부 갭 분석 체크리스트 (누락된 요구사항 검출)
-  - High Accuracy 모드: 계획 생성 후 자기검토 루프 (최대 3회)
-  - 계획 파일 출력: `.orchestrator/plans/{이름}.md`
-- **실행**: `claude --agent planner`
-- **주의**: 이 에이전트는 코드를 작성하지 않는다. 계획만 생성한다.
+**Planner** (Opus) — 구현하지 않는 전략가. 인터뷰 → 코드베이스 탐색 → 갭 분석 → `.orchestrator/plans/{이름}.md` 생성. `claude --agent planner`
 
-#### Oracle
-- **모델**: Claude Opus
-- **역할**: 읽기 전용 고난도 추론 전문가. 아키텍처 설계, 복잡한 디버깅
-- **핵심 능력**:
-  - 코드베이스 구조 분석 및 설계 결함 발견
-  - 실용적 최소주의 원칙: 가장 단순한 해결책 선호
-  - 예상 작업 시간 태깅 (Quick/Short/Medium/Large)
-- **실행**: Orchestrator/Planner가 내부적으로 호출
-- **주의**: 코드를 작성하거나 수정하지 않는다.
+**Oracle** (Opus) — 읽기 전용 고난도 추론. 아키텍처 설계, 복잡한 디버깅. 코드를 작성하거나 수정하지 않는다. Orchestrator/Planner가 내부적으로 호출.
 
-#### Deep-Worker
-- **모델**: Claude Opus
-- **역할**: 스킬이 로드된 상태에서 자율적으로 심층 작업 수행
-- **핵심 능력**:
-  - 6-섹션 프롬프트(TASK/OUTCOME/TOOLS/MUST DO/MUST NOT DO/CONTEXT) 기반 작업 수행
-  - 스킬에서 로드된 전문가 페르소나로 작동
-  - Notepad에서 선행 작업 컨텍스트 읽기 → 작업 후 발견사항 기록
-- **실행**: Orchestrator가 `task(category=..., load_skills=[...])` 형태로 위임
+**Deep-Worker** (Opus) — 스킬이 로드된 상태에서 자율적으로 심층 작업 수행. Orchestrator가 `task(category=..., load_skills=[...])` 형태로 위임.
 
-#### Librarian
-- **모델**: Claude Sonnet
-- **역할**: 외부 라이브러리 공식 문서 및 OSS 탐색 전문가
-- **핵심 능력**:
-  - 공식 문서, GitHub README, 변경 이력 수집
-  - 항상 `run_in_background=true`로 실행 (다른 작업과 병렬)
-- **실행**: `task(subagent_type="librarian", run_in_background=true, ...)`
+**Librarian** (Sonnet) — 외부 라이브러리 공식 문서·OSS 탐색. 항상 `run_in_background=true`로 실행.
 
-#### Search
-- **모델**: Claude Haiku
-- **역할**: 빠른 파일/사실 검색
-- **핵심 능력**: 특정 파일 위치, 함수명, 구현 패턴 빠른 탐색
-- **실행**: Orchestrator가 단순 검색에 사용
+**Search** (Haiku) — 빠른 파일·사실 검색. 단순 검색에 사용.
 
-#### Ops-Lead
-- **모델**: Claude Sonnet
-- **역할**: 운영, 프로젝트 관리, CI/CD
-- **실행**: `claude --agent ops-lead` 또는 Orchestrator 위임
+**Ops-Lead** (Sonnet) — 운영, 프로젝트 관리, CI/CD. `claude --agent ops-lead`
 
-#### Code-Architecture-Reviewer
-- **모델**: Claude Sonnet
-- **역할**: 구현 완료 후 코드 아키텍처 검토
-- **핵심 능력**:
-  - 타입 안전성, 에러 처리, 네이밍 컨벤션 검토
-  - 설계 결정 질문 ("왜 이 접근법을 선택했는가?")
-  - 시스템 통합 일관성 검증
-  - 결과를 `dev/active/[태스크]/[태스크]-code-review.md`에 저장
-  - 수정 사항을 자동으로 구현하지 않고 승인 요청
-- **실행**: `claude --agent code-architecture-reviewer`
+**Code-Architecture-Reviewer** (Sonnet) — 구현 완료 후 코드 아키텍처 검토. 결과를 `dev/active/{태스크}/code-review.md`에 저장. 수정 사항을 자동으로 구현하지 않고 승인 요청. `claude --agent code-architecture-reviewer`
 
-#### Auto-Error-Resolver
-- **역할**: TypeScript 컴파일 오류 자동 수정
-- **핵심 능력**:
-  - `post-tool-use-tracker`가 캐시한 영향받은 레포 감지
-  - TSC 오류 분류 후 체계적 수정 (import 오류 → 타입 불일치 → 속성 오류 순)
-  - 수정 후 TSC 재실행으로 검증
-  - `@ts-ignore` 대신 근본 원인 수정 원칙
-- **실행**: `claude --agent auto-error-resolver`
+**Auto-Error-Resolver** — TypeScript 컴파일 오류 자동 수정. `post-tool-use-tracker`가 캐시한 영향받은 레포를 감지해 TSC 오류를 체계적으로 수정. `claude --agent auto-error-resolver`
 
 ---
 
-## 5. 스킬 시스템
+## 6. 스킬 시스템
 
-스킬은 에이전트에게 **도메인 전문 지식**과 **전문가 페르소나**를 주입하는 메커니즘이다.
+스킬은 에이전트에게 도메인 전문 지식과 전문가 페르소나를 주입하는 메커니즘이다.
 
-### 5.1 스킬의 두 가지 역할
+### 6.1 스킬의 두 가지 역할
 
-#### 1. 도메인 지식 저장소
-각 스킬 디렉토리에는 해당 도메인의 검증된 패턴, 컨벤션, 안티패턴이 담긴 참조 파일들이 있다.
+**도메인 지식 저장소** — SKILL.md의 태스크-지식 매핑 테이블이 핵심이다. 작업 유형별로 어떤 참조 파일을 읽어야 하는지 명시되어 있어, Claude가 필요한 지식만 선택적으로 로드한다.
 
-```
-~/.claude/skills/fe/
-├── SKILL.md               # 태스크-지식 매핑 테이블 (진입점)
-├── code-quality.md        # 코드 품질 원칙
-├── component-patterns.md  # 컴포넌트 패턴
-├── state-management.md    # 상태 관리
-├── testing.md             # 테스트 전략
-├── performance.md         # 성능 최적화
-└── ...                    # 20+ 참조 파일
-```
+**Domain Expert Persona** — 각 SKILL.md 끝의 `## Domain Expert Persona` 섹션이 워커 에이전트의 정체성을 정의한다. 스킬이 로드되면 Claude는 해당 도메인 전문가처럼 판단하고 동작한다.
 
-SKILL.md의 **태스크-지식 매핑 테이블**이 핵심이다. 작업 유형별로 어떤 파일을 읽어야 하는지 명시되어 있어, Claude가 필요한 지식만 선택적으로 로드한다.
-
-```markdown
-| 태스크 유형 | 판단 기준 | Read할 파일 |
-|---|---|---|
-| 컴포넌트 작성 | UI 구조·분리가 핵심 | code-quality.md + component-patterns.md |
-| API 연동 | fetch·mutation·캐싱 | async-patterns.md + data-fetching.md |
-| 테스트 작성 | 유틸·훅 단위 테스트 | testing.md + testing-vitest-setup.md |
-```
-
-#### 2. Domain Expert Persona
-각 SKILL.md 끝의 `## Domain Expert Persona` 섹션이 워커 에이전트의 정체성을 정의한다. 이 스킬이 로드되면 Claude는 해당 도메인 전문가처럼 판단하고 작동한다.
-
-```markdown
-## Domain Expert Persona
-
-이 스킬이 로드될 때, 너는 **시니어 프론트엔드 엔지니어** 역할로 작업한다.
-
-**코드 철학**: "변경하기 쉬운 코드 = 좋은 코드"
-**4대 원칙**: 가독성, 예측 가능성, 응집도, 결합도
-
-**Work Principles**:
-- 기존 패턴을 먼저 파악한 뒤 작업을 시작한다
-- 단순한 해결책을 선호한다. 과도한 추상화를 피한다
-- 사용자의 결정을 존중한다. 대안을 제시하되 강요하지 않는다
-```
-
-### 5.2 도메인 스킬 목록
+### 6.2 도메인 스킬
 
 | 스킬 | 커버 영역 | 스택 |
 |------|----------|------|
-| `fe` | 프론트엔드 개발 | React, Next.js, TypeScript, Zustand, TanStack Query, Vitest, Playwright |
-| `be` | 백엔드 개발 | Node.js/Fastify + Python/Django, PostgreSQL, Redis, BullMQ |
-| `macos` | macOS 앱 개발 | SwiftUI, AppKit, Swift Concurrency, XCTest |
-| `designer` | UI/UX 디자인 | Figma, 디자인 시스템, 접근성, 사용성 |
-| `po` | 프로덕트 오너십 | PRD, 로드맵, 우선순위, OKR |
-| `qa` | 품질 보증 | 테스트 전략, E2E, 성능/보안 테스트 |
-| `data-analyst` | 데이터 분석 | SQL, A/B 테스트, 퍼널/코호트 분석, 대시보드 |
-| `ops-lead` | 운영·DevOps | CI/CD, 프로젝트 관리, 배포 |
+| `fe` | 프론트엔드 | React, Next.js, TypeScript, Zustand, TanStack Query, Vitest |
+| `be` | 백엔드 | Node.js/Fastify + Python/Django, PostgreSQL, Redis |
+| `macos` | macOS 앱 | SwiftUI, AppKit, Swift Concurrency, XCTest |
+| `designer` | UI/UX | Figma, 디자인 시스템, 접근성 |
+| `po` | 프로덕트 | PRD, 로드맵, 우선순위, OKR |
+| `qa` | 품질 보증 | 테스트 전략, E2E, 성능/보안 |
+| `data-analyst` | 데이터 분석 | SQL, A/B 테스트, 퍼널/코호트 |
+| `ops-lead` | DevOps | CI/CD, 배포, 프로젝트 관리 |
 
-### 5.3 유틸리티 스킬 목록
+### 6.3 유틸리티 스킬
 
 | 스킬 | 역할 |
 |------|------|
-| `skill-developer` | 스킬 생성·관리, skill-rules.json, 훅 시스템 설계 |
 | `commit-convention` | Conventional Commits 기반 커밋 컨벤션 |
+| `skill-developer` | 스킬 생성·관리, skill-rules.json 설계 |
 | `pdf` | PDF 읽기·병합·분할·OCR |
 | `pptx` | PPTX 읽기·생성·편집 |
 | `mcp-builder` | MCP 서버 설계·구축 |
 | `find-skills` | 오픈 스킬 생태계 검색·설치 |
-| `remotion-best-practices` | Remotion (React 비디오) 베스트 프랙티스 |
-| `vercel-react-best-practices` | React/Next.js 성능 최적화 64개 규칙 |
+| `remotion-best-practices` | Remotion (React 비디오) |
+| `vercel-react-best-practices` | React/Next.js 성능 최적화 |
 | `web-design-guidelines` | UI 접근성·UX 가이드라인 |
 
-### 5.4 스킬 호출 방식
+### 6.4 BE 스킬 스택 명시
 
-**직접 호출** (사용자 또는 에이전트):
-```
-Skill("fe")          → FE 스킬 로드
-Skill("be")          → BE 스킬 로드
-Skill("commit-convention")  → 커밋 컨벤션 확인
-```
+BE 스킬은 Python과 Node.js를 모두 커버하므로 프롬프트에 스택을 명시해야 한다.
 
-**Orchestrator 위임** (자동):
-```typescript
-// FE 작업 감지 시 자동 위임
-task(
-  category="visual-engineering",
-  load_skills=["fe"],
-  prompt=`
-1. TASK: UserProfile 컴포넌트 리팩토링
-2. EXPECTED OUTCOME: 4대 원칙 기반 분리, 테스트 포함
-3. REQUIRED TOOLS: Read, Write, Edit, Grep
-4. MUST DO: fe 스킬의 code-quality.md 참조
-5. MUST NOT DO: 전역 상태 변경 금지
-6. CONTEXT: src/components/UserProfile.tsx
-`)
+```
+load_skills=["be"], prompt="... Node.js/Fastify 스택. Fastify 5, Drizzle ORM, Vitest ..."
+load_skills=["be"], prompt="... Python/Django 스택. Django 5+, DRF, pytest ..."
 ```
 
 ---
 
-## 6. 스킬 자동 활성화
+## 7. 스킬 자동 활성화
 
-가장 좋은 스킬은 생각하지 않아도 활성화되는 스킬이다.
+`skill-activation-prompt` 훅이 사용자 프롬프트를 보내기 전에 실행된다.
 
-### 6.1 동작 방식
-
-`skill-activation-prompt` 훅이 **사용자 프롬프트를 보내기 전**에 실행된다:
-
-1. `skill-rules.json`에서 모든 스킬 규칙 로드
-2. 프롬프트 텍스트를 키워드 + 인텐트 패턴으로 분석
-3. 매칭된 스킬을 우선순위별로 Claude에게 주입
+1. `skill-rules.json`에서 스킬 규칙 로드 (프로젝트 → 글로벌 폴백)
+2. 프롬프트를 키워드 + 인텐트 패턴으로 분석
+3. 매칭된 스킬을 Claude에게 주입
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 SKILL ACTIVATION CHECK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📚 RECOMMENDED SKILLS:
-  → fe
-  → qa
-
+📚 RECOMMENDED SKILLS: → fe → qa
 ACTION: Use Skill tool BEFORE responding
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### 6.2 skill-rules.json 구조
+**skill-rules.json enforcement 레벨**: `suggest` (제안) / `warn` (경고) / `block` (차단)
 
-```json
-{
-  "fe": {
-    "type": "domain",
-    "enforcement": "suggest",
-    "priority": "high",
-    "promptTriggers": {
-      "keywords": ["react", "component", "typescript", "프론트엔드"],
-      "intentPatterns": [
-        "(create|add|build).*?(component|page|ui)",
-        "(fix|debug).*?(frontend|react)"
-      ]
-    }
-  }
-}
-```
-
-**enforcement 레벨**:
-- `suggest` — 제안만 (대부분의 스킬)
-- `block` — 스킬 로드 전 실행 차단 (critical guardrail)
-- `warn` — 경고만
-
-**우선순위 레벨**: `critical` > `high` > `medium` > `low`
-
-### 6.3 규칙 오버라이드
-
-글로벌 규칙 (`~/.claude/skills/skill-rules.json`)을 프로젝트별로 오버라이드할 수 있다:
-
-```
-my-project/
-└── .claude/
-    └── skills/
-        └── skill-rules.json  # 이 파일이 글로벌보다 우선
-```
+프로젝트별 오버라이드: `{project}/.claude/skills/skill-rules.json` (글로벌보다 우선)
 
 ---
 
-## 7. 훅 시스템
-
-### 7.1 훅 목록
+## 8. 훅 시스템
 
 | 훅 파일 | 이벤트 | 역할 |
 |--------|--------|------|
 | `skill-activation-prompt.sh` | UserPromptSubmit | 프롬프트 분석 → 스킬 자동 제안 |
 | `post-tool-use-tracker.sh` | PostToolUse (Edit/Write) | 편집 파일 추적, TSC 커맨드 캐시 |
 | `claude-remote-notification.sh` | Notification | 원격 서버로 알림 전송 |
-| `claude-remote-session-start.sh` | SessionStart | 세션 시작 알림 전송 |
-| `claude-remote-stop.sh` | Stop | 세션 종료 알림 전송 |
+| `claude-remote-session-start.sh` | SessionStart | 세션 시작 알림 |
+| `claude-remote-stop.sh` | Stop | 세션 종료 알림 |
 
-### 7.2 skill-activation-prompt 훅 상세
+**post-tool-use-tracker** — 편집 로그를 `.claude/tsc-cache/{session_id}/`에 기록. `auto-error-resolver`가 이 캐시를 읽어 TypeScript 오류를 자동 수정한다.
 
-**기술 스택**: TypeScript (tsx 런타임)
-
-**데이터 흐름**:
-```
-사용자 프롬프트 입력
-    → skill-activation-prompt.sh 실행
-    → skill-activation-prompt.ts 실행
-    → skill-rules.json 로드 (프로젝트 → 글로벌 폴백)
-    → 키워드·인텐트 패턴 매칭
-    → 매칭된 스킬 목록을 stdout으로 Claude에게 주입
-    → Claude가 프롬프트 처리 시작
-```
-
-**에러 처리**: 훅 실패 시 `exit 0`으로 조용히 종료. Claude 실행을 막지 않는다.
-
-### 7.3 post-tool-use-tracker 훅 상세
-
-Edit/Write/MultiEdit 도구 실행 후 동작:
-
-1. 편집된 파일 경로에서 레포 감지
-2. 편집 로그 기록: `.claude/tsc-cache/{session_id}/edited-files.log`
-3. 영향받은 레포 목록: `affected-repos.txt`
-4. TSC 커맨드 저장: `commands.txt`
-
-`auto-error-resolver` 에이전트가 이 캐시를 읽어 TypeScript 오류를 자동 수정한다.
-
-### 7.4 원격 알림 훅
-
-세션 상태(시작, 알림, 종료)를 원격 서버로 전송한다. 장시간 실행 작업을 모바일에서 모니터링할 때 유용하다.
-
-**환경 변수**:
-```bash
-export CLAUDE_REMOTE_API_KEY="your-api-key"
-```
+**원격 알림 훅** — `CLAUDE_REMOTE_API_KEY` 환경변수 필요. 장시간 작업을 모바일에서 모니터링할 때 유용.
 
 ---
 
-## 8. 슬래시 커맨드
+## 9. 슬래시 커맨드
 
-### `/init-deep`
+**`/init-deep`** — 프로젝트 디렉토리를 분석해 계층적 CLAUDE.md 파일을 자동 생성한다. 루트 + 서브디렉토리별 고유 규칙.
 
-프로젝트 디렉토리를 분석하여 **계층적 CLAUDE.md 파일**을 자동 생성한다.
+**`/ulw-loop`** — ULW (Understand → Look → Work) 자기개선 루프. Oracle이 작업 결과를 검증하고, OKAY 판정까지 반복 개선.
 
-- 루트 `CLAUDE.md`: 프로젝트 전체 컨벤션
-- 서브디렉토리별 `CLAUDE.md`: 해당 모듈 고유 규칙
-
-### `/ulw-loop`
-
-**ULW (Understand → Look → Work) 자기개선 루프**. Oracle 에이전트가 작업 결과를 검증하고, 통과할 때까지 반복 개선한다.
-
-1. 작업 수행
-2. Oracle에게 결과 검토 요청
-3. Oracle이 이슈 발견 시 수정 후 재검토
-4. Oracle이 OKAY 판정 시 완료
-
-### `/dev-docs`
-
-현재 작업에 대한 **구조화된 문서 3파일**을 자동 생성한다.
-
+**`/dev-docs`** — 현재 작업에 대한 구조화된 문서 3파일 생성.
 ```
 dev/active/{태스크명}/
-├── {태스크명}-plan.md      # 전략적 계획 전문
-├── {태스크명}-context.md   # 핵심 파일, 결정사항, 의존성
-└── {태스크명}-tasks.md     # 체크리스트 형식 진행 추적
+├── {태스크명}-plan.md      전략적 계획 (변경 없음)
+├── {태스크명}-context.md   현재 상태·결정사항 (세션마다 업데이트)
+└── {태스크명}-tasks.md     체크리스트 (진행률 추적)
 ```
 
-**언제 쓰나**: 복잡한 기능 구현 시작 전, 장기 작업 중에 구조화가 필요할 때
-
-### `/dev-docs-update`
-
-컨텍스트 압축이 임박했을 때 현재 세션의 진행 상황을 문서에 저장한다.
-
-- 완료된 태스크 ✅ 체크
-- 이번 세션의 주요 결정사항 기록
-- 다음 세션에서 바로 재개할 수 있는 핸드오프 노트 작성
+**`/dev-docs-update`** — 컨텍스트 압축 임박 시 현재 진행 상태를 문서에 저장. 다음 세션에서 `context.md`를 읽으면 바로 재개 가능.
 
 ---
 
-## 9. 플러그인
+## 10. 플러그인
 
 `settings.json`의 `enabledPlugins`에 선언. Claude Code가 자동으로 설치·업데이트한다.
 
@@ -494,263 +271,194 @@ dev/active/{태스크명}/
 | `feature-dev` | 탐색 → 설계 → 구현 → 리뷰 워크플로우 |
 | `frontend-design` | 프론트엔드 UI/UX 디자인 |
 | `skill-creator` | 스킬 생성·테스트·개선 |
-| `typescript-lsp` | TypeScript 타입 진단 (IDE 수준) |
-| `playwright` | 브라우저 자동화 E2E 테스트 |
+| `typescript-lsp` | TypeScript 타입 진단 |
+| `playwright` | E2E 테스트 자동화 |
 | `github` | GitHub 이슈·PR 관리 |
 | `vercel` | Vercel 배포 연동 |
 
 ---
 
-## 10. 핵심 패턴
+## 11. 핵심 패턴
 
-### 10.1 6-섹션 위임 프롬프트
+### 11.1 위임 프롬프트
 
-Orchestrator가 서브에이전트에게 작업을 위임할 때 사용하는 구조화된 형식이다. 모호한 지시를 방지한다.
+**단순 작업** — 3섹션으로 충분하다:
+```
+1. TASK: 무엇을 해야 하는가
+5. MUST NOT DO: 하지 말아야 할 것
+6. CONTEXT: 관련 파일 경로
+```
 
+**복잡한 작업** — 6섹션 전체:
 ```
 1. TASK: 무엇을 해야 하는가 (동사 + 목적어)
 2. EXPECTED OUTCOME: 완료 기준 (검증 가능한 형태)
 3. REQUIRED TOOLS: 사용할 도구 목록
-4. MUST DO: 반드시 해야 할 것 (참조 파일, 패턴, 스타일)
-5. MUST NOT DO: 절대 하지 말아야 할 것 (사이드 이펙트, 금지 패턴)
+4. MUST DO: 참조 파일, 패턴, 스타일
+5. MUST NOT DO: 사이드 이펙트, 금지 패턴
 6. CONTEXT: 관련 파일 경로, 배경 설명
 ```
 
-### 10.2 Notepad 시스템
-
-계획 파일을 Orchestrator가 실행할 때, 서브에이전트 간 지식을 공유하기 위한 파일 기반 메모 시스템이다.
-
-```
-.orchestrator/
-├── plans/
-│   └── {계획명}.md            # 작업 계획 (읽기 전용)
-├── notepads/
-│   └── {계획명}/
-│       ├── learnings.md       # 발견한 패턴·컨벤션
-│       ├── decisions.md       # 아키텍처 결정사항
-│       └── issues.md          # 문제점·주의사항
-└── evidence/
-    └── task-{N}-{시나리오}.ext  # QA 증거 파일
-```
-
-**규칙**:
-- 서브에이전트 위임 **전**: notepad 읽기
-- 서브에이전트 완료 **후**: 발견사항 append (덮어쓰기 금지)
-
-### 10.3 계획 기반 실행 워크플로우
-
-대규모 기능 개발의 표준 흐름:
-
-```
-1. claude --agent planner
-   → 인터뷰 (요구사항 명확화)
-   → 직접 코드베이스 탐색 (Grep/Glob/Read)
-   → 갭 분석 (내부 체크리스트)
-   → [선택] High Accuracy 모드 (자기검토 루프)
-   → .orchestrator/plans/{이름}.md 생성
-
-2. claude --agent orchestrator
-   → 계획 파일 읽기
-   → Wave별 태스크 분석
-   → 스킬 로드 후 병렬 위임
-   → notepad로 서브에이전트 간 동기화
-
-3. code-architecture-reviewer
-   → 구현 결과 검토
-   → dev/active/{태스크}/code-review.md 저장
-   → 승인 후 수정 진행
-
-4. auto-error-resolver (필요 시)
-   → TypeScript 오류 자동 수정
-```
-
-### 10.4 도메인 스킬 + category 위임 패턴
+### 11.2 도메인 스킬 위임 패턴
 
 ```typescript
 // FE 작업
 task(category="visual-engineering", load_skills=["fe"], prompt="...")
 
-// BE 작업 (스택 명시 필수)
+// BE 작업 (스택 명시)
 task(category="unspecified-high", load_skills=["be"], prompt="...Node.js/Fastify 스택...")
 
-// 복합 스킬 (백엔드 구현 + 테스트)
+// 복합 스킬
 task(category="unspecified-high", load_skills=["be", "qa"], prompt="...")
 
 // Background 위임 (librarian)
 task(subagent_type="librarian", run_in_background=true, load_skills=[],
-     prompt="Fastify 5 공식 문서: 플러그인 시스템, 라이프사이클 훅...")
+     prompt="Fastify 5 공식 문서: 플러그인 시스템...")
 ```
 
-### 10.5 개발 문서 3파일 패턴
+독립적인 FE/BE 작업은 동시에 위임한다. QA는 구현 완료 후 별도로 실행한다.
 
-컨텍스트 리셋 후에도 작업을 이어갈 수 있게 하는 구조:
-
-```
-dev/active/{태스크}/
-├── {태스크}-plan.md      전략적 계획 (변경 없음)
-├── {태스크}-context.md   현재 상태·결정사항 (세션마다 업데이트)
-└── {태스크}-tasks.md     체크리스트 (진행률 추적)
-```
-
-컨텍스트 압축이 임박하면 `/dev-docs-update`로 현재 상태를 저장한다. 다음 세션에서 `context.md`를 읽으면 바로 재개 가능하다.
-
----
-
-## 11. 주요 워크플로우
-
-### 일반 개발 작업 (orchestrator)
-
-```bash
-claude --agent orchestrator
-# → "UserProfile 컴포넌트에 아바타 업로드 기능 추가해줘"
-# orchestrator가 FE 도메인 감지 → fe 스킬 로드 → deep-worker 위임
-```
-
-### 대규모 기능 개발
-
-```bash
-# 1단계: 계획 수립
-claude --agent planner
-# → "소셜 로그인 기능 구현 계획 만들어줘"
-# → .orchestrator/plans/social-login.md 생성
-
-# 2단계: 계획 실행
-claude --agent orchestrator
-# → "social-login 계획 실행해줘"
-```
-
-### 아키텍처 자문
-
-```bash
-claude --agent oracle
-# → "현재 인증 구조에서 멀티 테넌시를 어떻게 도입하면 좋을까?"
-```
-
-### TypeScript 오류 수정
-
-```bash
-claude --agent auto-error-resolver
-# → 자동으로 TSC 오류 감지 및 수정
-```
-
-### 작업 문서화 (장기 프로젝트)
+### 11.3 계획 기반 실행 워크플로우
 
 ```
-/dev-docs 결제 시스템 구현
-# → dev/active/결제-시스템-구현/ 에 3파일 생성
+1. claude --agent planner
+   → 인터뷰 (요구사항 명확화)
+   → Grep/Glob/Read로 코드베이스 직접 탐색
+   → 갭 분석
+   → [선택] High Accuracy 모드 (자기검토 루프, 되돌리기 비싼 작업에만)
+   → .orchestrator/plans/{이름}.md 생성
 
-# ... 작업 진행 ...
+2. claude --agent orchestrator
+   → 계획 파일 읽기 → Wave별 병렬 위임
+   → issues.md로 서브에이전트 간 동기화
 
-/dev-docs-update
-# → 현재 진행 상태를 context.md, tasks.md에 저장
+3. code-architecture-reviewer (선택)
+   → 구현 결과 검토 → 승인 후 수정 진행
+
+4. auto-error-resolver (필요 시)
+   → TypeScript 오류 자동 수정
+```
+
+**계획 파일 기준**: 1개 파일에 전체 작업 (분할하면 orchestrator가 의존성을 놓친다). 태스크당 1-3개 파일, wave당 5-8개 태스크가 좋은 앵커지만 절대 규칙이 아니다.
+
+### 11.4 Notepad 시스템
+
+```
+.orchestrator/
+├── plans/{계획명}.md         작업 계획 (읽기 전용)
+├── notepads/{계획명}/
+│   └── issues.md             문제점·주의사항 (먼저 시작)
+│   (필요 시 learnings.md, decisions.md 추가)
+└── evidence/task-{N}-{시나리오}.ext
+```
+
+- 서브에이전트 위임 전: issues.md 읽기
+- 서브에이전트 완료 후: 발견한 문제·주의사항 append (덮어쓰기 금지)
+
+### 11.5 세션 연속성
+
+실패하거나 후속 작업이 있을 때 새 세션을 시작하지 말고 기존 세션을 재개한다.
+
+```typescript
+// 기존 세션 재개 (컨텍스트 보존 + 토큰 절약)
+task(session_id="ses_xyz789", prompt="Fix error: [specific error message]")
 ```
 
 ---
 
-## 12. 설치 및 설정
+## 12. QA & PR 프로세스
 
-### 12.1 요구사항
+```
+1. FE/BE 구현 완료
+2. QA 사전 검증 (qa 스킬 로드 워커)
+3. 이슈 발견 → FE/BE 수정 → QA 재검증 (반복)
+4. QA 통과 후 PR 생성
+5. CI/CD 대기 (run_in_background)
+6. 코드 리뷰 반영 후 머지 승인 요청
+```
 
-- Claude Code CLI
-- Node.js 18+ (skill-activation-prompt 훅용)
-- macOS (원격 알림 훅은 선택사항)
+QA 워커 호출 시 MUST NOT DO에 "코드 수정 금지 (검증만 수행)"를 반드시 명시한다.
 
-### 12.2 설치
+---
+
+## 13. 운영 체크리스트
+
+### 세션 시작 전
+- [ ] 올바른 에이전트를 선택했는가? (orchestrator vs planner)
+- [ ] 관련 스킬을 파악했는가? (`load_skills=["?"]`)
+- [ ] 기존 계획 파일이 있는가? (`.orchestrator/plans/`)
+
+### 위임 전
+- [ ] 프롬프트 섹션 선택 (둘 중 하나):
+  - 단순 작업 → TASK + MUST NOT DO + CONTEXT
+  - 복잡한 작업 → 6섹션 전체
+- [ ] 참조 파일 경로가 구체적인가? (`src/auth.ts:45-78`)
+- [ ] planner 기반이라면 issues.md를 먼저 읽었는가?
+
+### 위임 후
+- [ ] 결과가 MUST NOT DO를 위반하지 않는가?
+- [ ] lsp_diagnostics가 깨끗한가?
+- [ ] 세션 ID를 저장했는가? (실패 시 재개용)
+
+### PR 생성 전
+- [ ] QA 검증을 통과했는가?
+- [ ] 모든 테스트가 통과하는가?
+- [ ] 커밋 컨벤션을 준수했는가? (`commit-convention` 스킬 참조)
+
+---
+
+## 14. 트러블슈팅
+
+**워커가 잘못된 스택으로 구현할 때**
+→ CONTEXT에 "Node.js/Fastify 스택" 또는 "Python/Django 스택"을 명시
+
+**스킬이 로드되지 않을 때**
+→ `~/.claude/skills/{domain}/SKILL.md` 경로 확인
+
+**계획 실행 중 컨텍스트 손실**
+→ `.orchestrator/notepads/{name}/issues.md` 점검. 없으면 생성 후 발견 내용 기록
+
+**oracle 결과를 기다리지 않고 답변**
+→ background_output을 final answer 전에 수집
+→ `background_cancel(all=true)` 사용 금지 (oracle 취소됨)
+
+**QA 통과 전 PR 생성 시도**
+→ CLAUDE.md PR 프로세스 재확인: QA 통과 후 PR 생성
+
+---
+
+## 15. 설치
 
 ```bash
-# 1. 레포 클론
-git clone https://github.com/{your-repo}/harness-hub ~/.claude-harness
+cd /path/to/harness-hub
+bash bin/install.sh
+```
 
-# 2. symlink 또는 복사
-cp -r ~/.claude-harness/agents ~/.claude/agents
-cp -r ~/.claude-harness/skills ~/.claude/skills
-cp -r ~/.claude-harness/commands ~/.claude/commands
-cp -r ~/.claude-harness/hooks ~/.claude/hooks
-cp ~/.claude-harness/settings.json ~/.claude/settings.json
+harness-hub의 `agents/`, `skills/`, `hooks/`, `commands/`, `settings.json`, `keybindings.json`을 `~/.claude/`에 심볼릭 링크로 연결한다. 기존 파일이 있으면 `.bak`으로 백업 후 링크.
 
-# 3. 훅 의존성 설치
+**훅 의존성 설치** (skill-activation-prompt.sh가 Node.js 사용):
+```bash
 cd ~/.claude/hooks && npm install
+```
 
-# 4. 원격 알림 설정 (선택사항)
+**원격 알림 설정** (선택):
+```bash
 export CLAUDE_REMOTE_API_KEY="your-api-key"
 ```
 
-### 12.3 프로젝트별 skill-rules.json 설정
-
-```bash
-mkdir -p {your-project}/.claude/skills
-cp ~/.claude/skills/skill-rules.json {your-project}/.claude/skills/
-# → 프로젝트 고유 키워드로 커스터마이징
-```
-
-### 12.4 새 도메인 스킬 추가
-
-```bash
-# 1. 스킬 디렉토리 생성
-mkdir ~/.claude/skills/new-domain
-
-# 2. SKILL.md 작성 (500줄 이하)
-# - frontmatter (name, description)
-# - 핵심 원칙
-# - 태스크-지식 매핑 테이블
-# - 참조 파일 목록
-# - ## Domain Expert Persona 섹션
-
-# 3. 참조 파일들 추가
-
-# 4. skill-rules.json에 트리거 규칙 추가
-
-# 5. Orchestrator 도메인 트리거에 추가
-```
-
-자세한 스킬 생성 방법은 `skill-developer` 스킬을 참조: `Skill("skill-developer")`
-
-### 12.5 settings.json 주요 설정
-
-```json
-{
-  "permissions": {
-    "allow": ["Bash(*)", "Read(*)", "Write(*)", "Edit(*)",
-              "Glob(*)", "Grep(*)", "WebFetch(*)", "WebSearch(*)",
-              "Task(*)", "mcp__*", "Skill(*)"]
-  },
-  "hooks": {
-    "UserPromptSubmit": [{ "hooks": [{ "command": "~/.claude/hooks/skill-activation-prompt.sh" }] }],
-    "PostToolUse": [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "command": "~/.claude/hooks/post-tool-use-tracker.sh" }] }]
-  },
-  "enabledPlugins": { ... },
-  "effortLevel": "high"
-}
-```
-
 ---
 
-## 부록: 빠른 참조
+## 빠른 참조
 
-### 에이전트 선택 가이드
+```bash
+claude --agent orchestrator        # 일반 작업 (기본)
+claude --agent planner             # 요구사항 불명확 / 루프 조짐
+claude --agent oracle              # 아키텍처 자문
+claude --agent auto-error-resolver # TypeScript 오류 수정
 
-```
-작업 유형                              → 선택
-──────────────────────────────────────────────
-일반 개발 작업 (요구사항 명확)         → orchestrator
-대규모 기능 (요구사항 모호)           → planner → orchestrator
-아키텍처 자문, 복잡한 디버깅          → oracle
-TypeScript 오류 수정                   → auto-error-resolver
-코드 리뷰                             → code-architecture-reviewer
-운영, CI/CD, 프로세스                  → ops-lead
+/init-deep                         # CLAUDE.md 계층 생성
+/ulw-loop                          # 자기개선 루프
+/dev-docs {태스크명}                # 작업 문서 3파일 생성
 ```
 
-### 스킬 선택 가이드
-
-```
-작업 내용                      → 스킬          → category
-──────────────────────────────────────────────────────────
-React, Next.js, 컴포넌트       → fe            → visual-engineering
-Node.js/Fastify API            → be (Node 명시) → unspecified-high
-Python/Django API              → be (Python 명시) → unspecified-high
-SwiftUI, macOS 앱              → macos          → unspecified-high
-UI/UX 디자인                   → designer       → visual-engineering
-PRD, 로드맵, 우선순위          → po             → unspecified-high
-테스트 전략, 자동화            → qa             → unspecified-high
-SQL, A/B 테스트, 지표          → data-analyst   → unspecified-high
-```
+스킬 로드는 에이전트 프롬프트 내 `load_skills=["fe"]` 형태로 지정한다.

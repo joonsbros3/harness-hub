@@ -4,6 +4,12 @@
 *~
 .env
 
+# 다른 프로젝트 참고용 — 레포에 포함하지 않음
+diet103-main/
+
+# 로컬 세션 권한 — 커밋하지 않음
+.claude/settings.local.json
+
 # Domain skill knowledge files (SKILL.md only tracked)
 skills/be/*
 !skills/be/SKILL.md
