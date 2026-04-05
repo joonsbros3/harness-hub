@@ -4,6 +4,9 @@ set -e
 # Post-tool-use hook that tracks edited files and their repos
 # This runs after Edit, MultiEdit, or Write tools complete successfully
 
+# jq 필수 — 없으면 조용히 종료
+command -v jq &>/dev/null || exit 0
+
 # Read tool information from stdin
 tool_info=$(cat)
 

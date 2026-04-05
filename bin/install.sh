@@ -40,13 +40,32 @@ link_item() {
 }
 
 # ─────────────────────────────────────────────────────────────
-# 설치
+# 사전 확인
 # ─────────────────────────────────────────────────────────────
 echo ""
 echo "harness-hub 설치"
 echo "  소스: $HARNESS_DIR"
 echo "  대상: $CLAUDE_DIR"
 echo ""
+
+# 필수 의존성 확인
+if ! command -v node &>/dev/null; then
+  echo "  ⚠ Node.js가 설치되지 않았습니다"
+  echo "    skill-activation-prompt 훅에 필요합니다"
+  echo "    brew install node 또는 https://nodejs.org 에서 설치하세요"
+  echo ""
+fi
+
+if ! command -v jq &>/dev/null; then
+  echo "  ⚠ jq가 설치되지 않았습니다"
+  echo "    post-tool-use-tracker 훅에 필요합니다"
+  echo "    brew install jq 로 설치하세요"
+  echo ""
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 설치
+# ─────────────────────────────────────────────────────────────
 
 # ~/.claude 디렉토리가 없으면 생성 (깨끗한 환경 대응)
 mkdir -p "$CLAUDE_DIR"
@@ -61,7 +80,31 @@ for file in settings.json keybindings.json CLAUDE.md; do
   link_item "$file"
 done
 
+# 훅 파일 실행 권한 부여
+chmod +x "$HARNESS_DIR"/hooks/*.sh 2>/dev/null || true
+
+# ─────────────────────────────────────────────────────────────
+# 설치 후 안내
+# ─────────────────────────────────────────────────────────────
 echo ""
-echo "완료. 확인:"
+echo "완료."
+echo ""
+
+# 훅 의존성 안내
+if [[ -f "$CLAUDE_DIR/hooks/package.json" ]]; then
+  if [[ ! -d "$CLAUDE_DIR/hooks/node_modules" ]]; then
+    echo "📦 훅 의존성 설치가 필요합니다:"
+    echo "  cd $CLAUDE_DIR/hooks && npm install"
+    echo ""
+  fi
+fi
+
+# 스킬 health check
+if [[ -f "$HARNESS_DIR/bin/check-skills.sh" ]]; then
+  echo "🔍 스킬 상태 확인:"
+  bash "$HARNESS_DIR/bin/check-skills.sh" "$CLAUDE_DIR/skills" 2>/dev/null || true
+fi
+
+echo "확인:"
 echo "  ls -la $CLAUDE_DIR/agents $CLAUDE_DIR/skills"
 echo ""

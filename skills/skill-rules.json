@@ -174,6 +174,138 @@
                     "skill.*?(system|rules|trigger|hook)"
                 ]
             }
+        },
+        "ops-lead": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "프로젝트 관리, 클라이언트 운영, 콘텐츠 QC, 성과 리포팅",
+            "promptTriggers": {
+                "keywords": [
+                    "프로젝트 관리", "project management", "클라이언트", "client",
+                    "운영", "operations", "ops", "리포트", "report", "리포팅",
+                    "qc", "품질 관리", "kpi", "sla", "sprint", "스프린트",
+                    "미팅", "meeting", "agenda", "회의록"
+                ],
+                "intentPatterns": [
+                    "(manage|plan|track).*?(project|client|sprint|delivery)",
+                    "(create|write|prepare).*?(report|agenda|meeting|리포트|회의록)",
+                    "(review|check).*?(quality|qc|deliverable|산출물)"
+                ]
+            }
+        },
+        "pdf": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "PDF 읽기·병합·분할·OCR·폼 작성",
+            "promptTriggers": {
+                "keywords": [
+                    "pdf", "ocr", "문서 변환", "document", "merge pdf",
+                    "split pdf", "pdf form", "pdf 폼", "pdf 읽기",
+                    "pdf 병합", "pdf 분할", "fillable"
+                ],
+                "intentPatterns": [
+                    "(read|parse|extract|convert|merge|split|fill).*?pdf",
+                    "pdf.*?(read|parse|extract|convert|merge|split|fill|form)"
+                ]
+            }
+        },
+        "pptx": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "PPTX 읽기·생성·편집",
+            "promptTriggers": {
+                "keywords": [
+                    "pptx", "powerpoint", "파워포인트", "슬라이드", "slide",
+                    "presentation", "프레젠테이션", "발표 자료", "ppt"
+                ],
+                "intentPatterns": [
+                    "(create|make|edit|read|modify).*?(pptx|powerpoint|presentation|slide|슬라이드|발표)",
+                    "(pptx|powerpoint|presentation).*?(create|edit|read|modify|생성|편집)"
+                ]
+            }
+        },
+        "mcp-builder": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "MCP 서버 설계 및 구축",
+            "promptTriggers": {
+                "keywords": [
+                    "mcp", "mcp server", "mcp 서버", "model context protocol",
+                    "tool server", "mcp tool"
+                ],
+                "intentPatterns": [
+                    "(create|build|implement|design).*?mcp",
+                    "mcp.*?(server|tool|resource|prompt)"
+                ]
+            }
+        },
+        "remotion-best-practices": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "medium",
+            "description": "Remotion (React 비디오) 베스트 프랙티스",
+            "promptTriggers": {
+                "keywords": [
+                    "remotion", "react video", "비디오 생성", "video generation",
+                    "composition", "sequence", "animation", "render video"
+                ],
+                "intentPatterns": [
+                    "(create|make|render|build).*?(video|remotion|composition|animation)",
+                    "remotion.*?(best practice|pattern|how to)"
+                ]
+            }
+        },
+        "vercel-react-best-practices": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "React/Next.js 성능 최적화 규칙",
+            "promptTriggers": {
+                "keywords": [
+                    "vercel", "배포", "deploy", "performance optimization",
+                    "성능 최적화", "core web vitals", "lighthouse", "bundle size"
+                ],
+                "intentPatterns": [
+                    "(optimize|improve).*?(performance|bundle|loading|core web vitals)",
+                    "(deploy|배포).*?vercel"
+                ]
+            }
+        },
+        "web-design-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "UI 접근성·UX 가이드라인",
+            "promptTriggers": {
+                "keywords": [
+                    "접근성", "accessibility", "wcag", "aria", "screen reader",
+                    "keyboard navigation", "contrast", "ux guideline"
+                ],
+                "intentPatterns": [
+                    "(check|improve|audit).*?(accessibility|a11y|wcag)",
+                    "(accessibility|접근성).*?(guideline|standard|rule|규칙)"
+                ]
+            }
+        },
+        "find-skills": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "low",
+            "description": "오픈 스킬 생태계 검색·설치",
+            "promptTriggers": {
+                "keywords": [
+                    "find skill", "스킬 찾기", "install skill", "스킬 설치",
+                    "skill marketplace", "skill registry", "available skills"
+                ],
+                "intentPatterns": [
+                    "(find|search|install|browse).*?skill",
+                    "(what|which).*?skills? available"
+                ]
+            }
         }
     },
     "notes": {

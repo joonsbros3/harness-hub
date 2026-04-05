@@ -13,7 +13,8 @@ harness-hub/
 ├── commands/        # 슬래시 커맨드 (4개)
 ├── hooks/           # 이벤트 훅 스크립트 (sh + ts)
 ├── bin/
-│   └── install.sh   # ~/.claude/ 설치 스크립트
+│   ├── install.sh   # ~/.claude/ 설치 스크립트
+│   └── check-skills.sh  # 스킬 health check
 ├── CLAUDE.md        # 글로벌 지침
 ├── settings.json    # Claude Code 설정
 ├── keybindings.json # 키 바인딩
@@ -35,6 +36,29 @@ bash bin/install.sh
 cd ~/.claude/hooks && npm install
 ```
 
+### 필수 의존성
+
+| 의존성 | 용도 | 설치 |
+|--------|------|------|
+| Node.js | skill-activation-prompt 훅 | `brew install node` |
+| jq | post-tool-use-tracker 훅 | `brew install jq` |
+
+## Knowledge 파일 정책
+
+도메인 스킬(`fe`, `be`, `qa` 등)의 SKILL.md는 git에 추적되지만, SKILL.md가 참조하는 **knowledge 파일은 git에 포함되지 않는다** (`.gitignore`로 제외). 이유:
+
+- Knowledge 파일은 개인의 기술 스택·프로젝트 컨벤션에 맞게 커스터마이징하는 파일이다
+- 각자의 환경에서 직접 작성하거나, `Skill("skill-developer")`를 사용하여 생성한다
+
+**최초 설치 후 knowledge 파일 셋업:**
+
+```bash
+# 누락된 knowledge 파일 확인
+bash bin/check-skills.sh
+
+# 빈 템플릿 자동 생성 (선택)
+bash bin/check-skills.sh --bootstrap
+```
 
 ## 에이전트 (9개)
 
@@ -48,7 +72,7 @@ cd ~/.claude/hooks && npm install
 | `search.md` | Haiku | 빠른 파일·사실 검색 |
 | `ops-lead.md` | Sonnet | 운영, 프로젝트 관리 |
 | `code-architecture-reviewer.md` | Sonnet | 코드 아키텍처 검토 |
-| `auto-error-resolver.md` | — | TypeScript 컴파일 오류 자동 수정 |
+| `auto-error-resolver.md` | Sonnet | TypeScript 컴파일 오류 자동 수정 |
 
 ## 스킬
 
