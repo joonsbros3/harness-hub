@@ -102,7 +102,7 @@ call_omo_agent(subagent_type="librarian", run_in_background=true, description="F
 - NEVER use `run_in_background=false` for search/librarian
 - Continue your work immediately after launching background agents
 - Collect results with `background_output(task_id="...")` when needed
-- BEFORE final answer: `background_cancel(all=true)` to clean up
+- BEFORE final answer: cancel each disposable background task individually via `background_cancel(taskId="...")` — **NEVER** use `background_cancel(all=true)` (Oracle 등 중요 태스크가 취소됨)
 
 ### Search Stop Conditions
 

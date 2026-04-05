@@ -24,7 +24,7 @@
 - **커밋 컨벤션**: commit-convention 스킬 준수. Wave/Task 단위로 커밋을 분리한다. 한 커밋에 여러 type(feat + refactor 등)을 혼합하지 않는다.
 - **테스트 코드**: 신규 기능에 대한 테스트 코드를 반드시 작성한다.
 - **PR 프로세스**: 위의 PR 프로세스 6단계를 따른다.
-- **코드 규칙**: 프로젝트 AGENTS.md 컨벤션을 참조한다.
+- **코드 규칙**: 프로젝트 CLAUDE.md 컨벤션을 참조한다.
 
 ## Anti-Patterns (Agent Team)
 
